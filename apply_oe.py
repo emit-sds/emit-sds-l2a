@@ -26,6 +26,7 @@ def main():
     parser.add_argument('input_obs', type=str)
     parser.add_argument('working_directory', type=str)
     parser.add_argument('sensor', type=str, choices=['ang', 'avcl'])
+    parser.add_argument('--copy_input_files', type=int, choices=[0,1], default=0)
     parser.add_argument('--h2o', action='store_true')
     parser.add_argument('--isofit_path', type=str)
     parser.add_argument('--modtran_path', type=str)
@@ -38,6 +39,11 @@ def main():
     parser.add_argument('--nodata_value', type=float, default=-9999)
     parser.add_argument('--log_file', type=str, default=None)
     args = parser.parse_args()
+
+    if args.copy_input_files == 1:
+        args.copy_input_files = True
+    else:
+        args.copy_input_files = False
 
     if args.log_file is None:
         logging.basicConfig(format='%(message)s', level=args.level)
@@ -114,9 +120,15 @@ def main():
 
     # define staged file locations
     rdn_fname = fid + '_rdn'
-    rdn_working_path = abspath(join(input_data_directory, rdn_fname))
-    obs_working_path = abspath(join(input_data_directory, fid + '_obs'))
-    loc_working_path = abspath(join(input_data_directory, fid + '_loc'))
+    if args.copy_input_files is True:
+        radiance_working_path = abspath(join(input_data_directory, rdn_fname))
+        obs_working_path = abspath(join(input_data_directory, fid + '_obs'))
+        loc_working_path = abspath(join(input_data_directory, fid + '_loc'))
+    else:
+        radiance_working_path = input_radiance_file
+        obs_working_path = input_obs_file
+        loc_working_path = input_loc_file
+
     rfl_working_path = abspath(join(output_directory, rdn_fname.replace('_rdn', '_rfl')))
     uncert_working_path = abspath(join(output_directory, rdn_fname.replace('_rdn', '_uncert')))
     lbl_working_path = abspath(join(output_directory, rdn_fname.replace('_rdn', '_lbl')))
@@ -167,7 +179,7 @@ def main():
             os.mkdir(dpath)
 
     # stage data files by copying into working directory
-    for src, dst in [(input_radiance_file, rdn_working_path),
+    for src, dst in [(input_radiance_file, radiance_working_path),
                      (input_obs_file, obs_working_path),
                      (input_loc_file, loc_working_path)]:
         if not exists(dst):
@@ -188,13 +200,13 @@ def main():
             copyfile(src, dst)
 
     # Superpixel segmentation
-    if not exists(lbl_working_path) or not exists(rdn_working_path):
+    if not exists(lbl_working_path) or not exists(radiance_working_path):
         logging.info('Segmenting...')
-        segment(spectra=(rdn_working_path, lbl_working_path),
+        segment(spectra=(radiance_working_path, lbl_working_path),
                 flag=args.nodata_value, npca=5, segsize=segmentation_size, nchunk=chunksize)
 
     # Extract input data
-    for inp, outp in [(rdn_working_path, rdn_subs_path),
+    for inp, outp in [(radiance_working_path, rdn_subs_path),
                       (obs_working_path, obs_subs_path),
                       (loc_working_path, loc_subs_path)]:
         if not exists(outp):
@@ -431,7 +443,7 @@ def main():
                        reference_uncertainty=uncert_subs_path,
                        reference_locations=loc_subs_path,
                        hashfile=lbl_working_path,
-                       input_radiance=rdn_working_path,
+                       input_radiance=radiance_working_path,
                        input_locations=loc_working_path,
                        output_reflectance=rfl_working_path,
                        output_uncertainty=uncert_working_path,
