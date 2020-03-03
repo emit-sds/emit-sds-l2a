@@ -124,12 +124,15 @@ def main():
     chnunct_working_path = abspath(join(data_directory, 'channelized_uncertainty.txt'))
 
     rdn_subs_path = abspath(join(input_data_directory, rdn_fname.replace('_rdn', '_subs_rdn')))
-    obs_subs_path = abspath(join(input_data_directory, os.path.basename(obs_working_path).replace('_obs', '_subs_obs')))
-    loc_subs_path = abspath(join(input_data_directory, os.path.basename(loc_working_path).replace('_loc', '_subs_loc')))
+    obs_subs_path = abspath(join(input_data_directory, os.path.basename(
+        obs_working_path).replace('_obs', '_subs_obs')))
+    loc_subs_path = abspath(join(input_data_directory, os.path.basename(
+        loc_working_path).replace('_loc', '_subs_loc')))
     rfl_subs_path = abspath(join(output_directory, rdn_fname.replace('_rdn', '_subs_rfl')))
     state_subs_path = abspath(join(output_directory, rdn_fname.replace('_rdn', '_subs_state')))
     uncert_subs_path = abspath(join(output_directory, rdn_fname.replace('_rdn', '_subs_uncert')))
-    h2o_subs_path = abspath(join(output_directory, os.path.basename(loc_working_path).replace('_loc', '_subs_h2o')))
+    h2o_subs_path = abspath(join(output_directory, os.path.basename(
+        loc_working_path).replace('_loc', '_subs_h2o')))
 
     wavelength_path = abspath(join(data_directory, 'wavelengths.txt'))
 
@@ -155,7 +158,6 @@ def main():
     elev_lut_grid_margin = 0.1
 
     num_h2o_lut_elements = 10
-
 
     # create missing directories
     for dpath in [working_path, lut_h2o_directory, lut_modtran_directory, config_directory,
@@ -215,8 +217,7 @@ def main():
         wl = wl / 1000.0
         fwhm = fwhm / 1000.0
 
-
-    #TODO: re-write IO for BIL oriented datasets, so we're not taking inefficient slices through the data cube
+    # TODO: re-write IO for BIL oriented datasets, so we're not taking inefficient slices through the data cube
 
     # Recognize bad data flags
     valid = np.abs(radiance_dataset.read_band(0) + 2*eps - args.nodata_value) < eps
@@ -236,7 +237,8 @@ def main():
     to_sensor_zenith = 180.0 - obs_dataset.read_band(2)  # 180 reversal follows MODTRAN convention
 
     mean_to_sensor_azimuth = np.mean(to_sensor_azimuth[valid])
-    mean_to_sensor_zenith_rad = (np.mean(to_sensor_zenith[valid]) / 360.0 * 2.0 * np.pi) # In radians to match convention
+    # In radians to match convention
+    mean_to_sensor_zenith_rad = (np.mean(to_sensor_zenith[valid]) / 360.0 * 2.0 * np.pi)
 
     mean_altitude_km = mean_elevation_km + np.cos(mean_to_sensor_zenith_rad) * mean_path_km
 
@@ -252,12 +254,12 @@ def main():
 
     # make elevation grid
     elevation_lut_grid = np.linspace(max(elevation_km[valid].min(), eps),
-                                         elevation_km[valid].max() + elev_lut_grid_margin,
-                                         num_elev_lut_elements)
+                                     elevation_km[valid].max() + elev_lut_grid_margin,
+                                     num_elev_lut_elements)
 
     # write wavelength file
     wl_data = np.concatenate([np.arange(len(wl))[:, np.newaxis], wl[:, np.newaxis],
-                             fwhm[:, np.newaxis]], axis=1)
+                              fwhm[:, np.newaxis]], axis=1)
     np.savetxt(wavelength_path, wl_data, delimiter=' ')
 
     if not exists(h2o_subs_path + '.hdr') or not exists(h2o_subs_path):
@@ -333,7 +335,8 @@ def main():
     h2o_est = h2o.read_band(-1)[:].flatten()
 
     h2o_min = 0.2
-    h2o_grid = np.linspace(np.percentile(h2o_est[h2o_est > h2o_min],5), np.percentile(h2o_est[h2o_est > h2o_min],95))
+    h2o_grid = np.linspace(np.percentile(
+        h2o_est[h2o_est > h2o_min], 5), np.percentile(h2o_est[h2o_est > h2o_min], 95))
 
     logging.info(state_subs_path)
     if not exists(state_subs_path) or \
@@ -416,7 +419,7 @@ def main():
 
         # clean up unneeded storage
         for to_rm in ['*r_k', '*t_k', '*tp7', '*wrn', '*psc', '*plt', '*7sc', '*acd']:
-            cmd = 'rm '+ join(lut_modtran_directory, to_rm)
+            cmd = 'rm ' + join(lut_modtran_directory, to_rm)
             logging.INFO(cmd)
             os.system(cmd)
 
@@ -441,6 +444,7 @@ class SerialEncoder(json.JSONEncoder):
     """Encoder for json to help ensure json objects can be passed to the workflow manager.
 
     """
+
     def default(self, obj):
         if isinstance(obj, np.integer):
             return int(obj)
@@ -512,9 +516,9 @@ def load_climatology(config_path: str, latitude: float, longitude: float, acquis
                     aerosol_model_path = case['aerosol_mdl_path']
                     break
 
-    logging.INFO('Climatology Loaded.  Aerosol State Vector:\n{}\nAerosol LUT Grid:\n{}\nAerosol model path:{}'.format(aerosol_state_vector, aerosol_lut_grid, aerosol_model_path))
+    logging.INFO('Climatology Loaded.  Aerosol State Vector:\n{}\nAerosol LUT Grid:\n{}\nAerosol model path:{}'.format(
+        aerosol_state_vector, aerosol_lut_grid, aerosol_model_path))
     return aerosol_state_vector, aerosol_lut_grid, aerosol_model_path
-
 
 
 def get_time_from_obs(obs_filename: str, time_band: int = 9, max_flight_duration_h: int = 8):
@@ -545,7 +549,7 @@ def get_time_from_obs(obs_filename: str, time_band: int = 9, max_flight_duration
 
     increment_day = False
     # UTC day crossover corner case
-    if (max_time > 24 - max_flight_duration_h and \
+    if (max_time > 24 - max_flight_duration_h and
             min_time < max_flight_duration_h):
         mean_time[mean_time < max_flight_duration_h] += 24
         mean_time = np.average(mean_time, weights=mean_time_w)
@@ -566,7 +570,7 @@ def get_time_from_obs(obs_filename: str, time_band: int = 9, max_flight_duration
 
 def write_modtran_template(atmosphere_type: str, fid: str, altitude_km: float, dayofyear: int,
                            latitude: float, longitude: float, to_sensor_azimuth: float, gmtime: float,
-                           elevation_km: float, output_file: str ):
+                           elevation_km: float, output_file: str):
     """ Write a MODTRAN template file for use by isofit look up tables
     Args:
         atmosphere_type: label for the type of atmospheric profile to use in modtran
@@ -654,4 +658,3 @@ def write_modtran_template(atmosphere_type: str, fid: str, altitude_km: float, d
 
 if __name__ == "__main__":
     main()
-
