@@ -158,7 +158,14 @@ def main():
     #irradiance_path = join(isofit_path, 'data', 'kurudz_0.1nm.dat')
 
     # TODO: AVCL
-    noise_path = join(isofit_path, 'data', 'avirisng_noise.txt')
+    if args.sensor == 'ang':
+        noise_path = join(isofit_path, 'data', 'avirisng_noise.txt')
+    elif args.sensor == 'avcl':
+        noise_path = join(isofit_path, 'data', 'aviriscl_noise.txt')
+    else:
+        logging.info('no noise path found, check sensor type')
+        quit()
+
     aerosol_tpl_path = join(isofit_path, 'data', 'aerosol_template.json')
 
     # TODO: either make these globals or aruments
@@ -191,6 +198,7 @@ def main():
     if (channelized_uncertainty_path is not None):
         files_to_stage.append((channelized_uncertainty_path, chnunct_working_path))
     else:
+        chnunct_working_path=None
         logging.info('No valid channelized uncertainty file found, proceeding without uncertainty')
 
     # Staging files without headers
@@ -316,13 +324,16 @@ def main():
                                                 'parametric_noise_file': noise_path,
                                                 'integrations': num_integrations,
                                                 'unknowns': {
-                                                    'channelized_radiometric_uncertainty_file': chnunct_working_path,
                                                     'uncorrelated_radiometric_uncertainty': 0.01}},
                                  "multicomponent_surface": {"wavelength_file": wavelength_path,
                                                             "surface_file": surface_working_path,
                                                             "select_on_init": True},
                                  "modtran_radiative_transfer": h2o_configuration},
                              "inversion": {"windows": [[380, 1340], [1450, 1800], [1980, 2480]]}}
+
+        if chnunct_working_path is not None:
+            isofit_config_h2o['forward_model']['unknowns'][
+                'channelized_radiometric_uncertainty_file'] = chnunct_working_path
 
         if args.rdn_factors_path:
             isofit_config_h2o['input']['radiometry_correction_file'] = \
@@ -413,7 +424,8 @@ def main():
                                                                 "select_on_init": True},
                                      "modtran_radiative_transfer": modtran_configuration},
                                  "inversion": {"windows": [[380, 1340], [1450, 1800], [1980, 2480]]}}
-        if args.sensor == 'ang':
+
+        if chnunct_working_path is not None:
             isofit_config_modtran['forward_model']['unknowns'][
                 'channelized_radiometric_uncertainty_file'] = chnunct_working_path
 
