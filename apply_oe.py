@@ -157,6 +157,7 @@ def main():
     num_elev_lut_elements = 3
     elev_lut_grid_margin = 0.1
 
+    h2o_min = 0.2
     num_h2o_lut_elements = 10
 
     # create missing directories
@@ -334,9 +335,8 @@ def main():
     h2o = envi.open(h2o_subs_path + '.hdr')
     h2o_est = h2o.read_band(-1)[:].flatten()
 
-    h2o_min = 0.2
     h2o_grid = np.linspace(np.percentile(
-        h2o_est[h2o_est > h2o_min], 5), np.percentile(h2o_est[h2o_est > h2o_min], 95))
+        h2o_est[h2o_est > h2o_min], 5), np.percentile(h2o_est[h2o_est > h2o_min], 95), num_h2o_lut_elements)
 
     logging.info(state_subs_path)
     if not exists(state_subs_path) or \
