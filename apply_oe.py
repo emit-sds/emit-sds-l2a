@@ -161,7 +161,7 @@ def main():
     if args.sensor == 'ang':
         noise_path = join(isofit_path, 'data', 'avirisng_noise.txt')
     elif args.sensor == 'avcl':
-        noise_path = join(isofit_path, 'data', 'aviriscl_noise.txt')
+        noise_path = join(isofit_path, 'data', 'avirisc_noise.txt')
     else:
         logging.info('no noise path found, check sensor type')
         quit()
