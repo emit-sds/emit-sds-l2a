@@ -135,16 +135,13 @@ def main():
     surface_working_path = abspath(join(data_directory, 'surface.mat'))
     chnunct_working_path = abspath(join(data_directory, 'channelized_uncertainty.txt'))
 
-    rdn_subs_path = abspath(join(input_data_directory, rdn_fname.replace('_rdn', '_subs_rdn')))
-    obs_subs_path = abspath(join(input_data_directory, os.path.basename(
-        obs_working_path).replace('_obs', '_subs_obs')))
-    loc_subs_path = abspath(join(input_data_directory, os.path.basename(
-        loc_working_path).replace('_loc', '_subs_loc')))
-    rfl_subs_path = abspath(join(output_directory, rdn_fname.replace('_rdn', '_subs_rfl')))
-    state_subs_path = abspath(join(output_directory, rdn_fname.replace('_rdn', '_subs_state')))
-    uncert_subs_path = abspath(join(output_directory, rdn_fname.replace('_rdn', '_subs_uncert')))
-    h2o_subs_path = abspath(join(output_directory, os.path.basename(
-        loc_working_path).replace('_loc', '_subs_h2o')))
+    rdn_subs_path = abspath(join(input_data_directory, fid + '_subs_rdn'))
+    obs_subs_path = abspath(join(input_data_directory, fid + '_subs_obs'))
+    loc_subs_path = abspath(join(input_data_directory, fid + '_subs_loc'))
+    rfl_subs_path = abspath(join(output_directory, fid + '_subs_rfl'))
+    state_subs_path = abspath(join(output_directory, fid + '_subs_state'))
+    uncert_subs_path = abspath(join(output_directory, fid + '_subs_uncert'))
+    h2o_subs_path = abspath(join(output_directory, fid + '_subs_h2o'))
 
     wavelength_path = abspath(join(data_directory, 'wavelengths.txt'))
 
