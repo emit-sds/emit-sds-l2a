@@ -179,6 +179,10 @@ def main():
     h2o_min = 0.2
     num_h2o_lut_elements = 10
 
+    uncorrelated_radiometric_uncertainty = 0.02
+
+    inversion_windows = [[400.0,1300.0],[1450,1780.0],[2050.0,2450.0]]
+
     # create missing directories
     for dpath in [working_path, lut_h2o_directory, lut_modtran_directory, config_directory,
                   data_directory, input_data_directory, output_directory]:
@@ -241,7 +245,7 @@ def main():
     # TODO: re-write IO for BIL oriented datasets, so we're not taking inefficient slices through the data cube
 
     # Recognize bad data flags
-    valid = np.abs(radiance_dataset.read_band(0) + 2*eps - args.nodata_value) < eps
+    valid = np.abs(radiance_dataset.read_band(0) + 2*eps - args.nodata_value) > eps
 
     # Grab zensor position and orientation information
     loc_dataset = envi.open(loc_subs_path + '.hdr')
@@ -258,8 +262,9 @@ def main():
     to_sensor_zenith = 180.0 - obs_dataset.read_band(2)  # 180 reversal follows MODTRAN convention
 
     mean_to_sensor_azimuth = np.mean(to_sensor_azimuth[valid])
-    # In radians to match convention
-    mean_to_sensor_zenith_rad = (np.mean(to_sensor_zenith[valid]) / 360.0 * 2.0 * np.pi)
+
+    # In radians to match convention - re-reverse for this calc
+    mean_to_sensor_zenith_rad = (np.mean(180 - to_sensor_zenith[valid]) / 360.0 * 2.0 * np.pi)
 
     mean_altitude_km = mean_elevation_km + np.cos(mean_to_sensor_zenith_rad) * mean_path_km
 
@@ -324,12 +329,12 @@ def main():
                                                 'parametric_noise_file': noise_path,
                                                 'integrations': num_integrations,
                                                 'unknowns': {
-                                                    'uncorrelated_radiometric_uncertainty': 0.01}},
+                                                    'uncorrelated_radiometric_uncertainty': uncorrelated_radiometric_uncertainty}},
                                  "multicomponent_surface": {"wavelength_file": wavelength_path,
                                                             "surface_file": surface_working_path,
                                                             "select_on_init": True},
                                  "modtran_radiative_transfer": h2o_configuration},
-                             "inversion": {"windows": [[380, 1340], [1450, 1800], [1980, 2480]]}}
+                             "inversion": {"windows": inversion_windows}}
 
         if chnunct_working_path is not None:
             isofit_config_h2o['forward_model']['unknowns'][
@@ -418,12 +423,12 @@ def main():
                                      'instrument': {'wavelength_file': wavelength_path,
                                                     'parametric_noise_file': noise_path,
                                                     'integrations': num_integrations,
-                                                    'unknowns': {'uncorrelated_radiometric_uncertainty': 0.01}},
+                                                    'unknowns': {'uncorrelated_radiometric_uncertainty': uncorrelated_radiometric_uncertainty}},
                                      "multicomponent_surface": {"wavelength_file": wavelength_path,
                                                                 "surface_file": surface_working_path,
                                                                 "select_on_init": True},
                                      "modtran_radiative_transfer": modtran_configuration},
-                                 "inversion": {"windows": [[380, 1340], [1450, 1800], [1980, 2480]]}}
+                                 "inversion": {"windows": inversion_windows}}
 
         if chnunct_working_path is not None:
             isofit_config_modtran['forward_model']['unknowns'][
