@@ -450,13 +450,13 @@ class SerialEncoder(json.JSONEncoder):
             return super(SerialEncoder, self).default(obj)
 
 
-def load_climatology(config_path: str, latitude: float, longitude: float, aquisition_datetime: datetime, isofit_path: str):
+def load_climatology(config_path: str, latitude: float, longitude: float, acquisition_datetime: datetime, isofit_path: str):
     """ Load climatology data, based on location and configuration
     Args:
         config_path: path to the base configuration directory for isofit
-        latitude: latitude to set for the segment (mean of aquisition suggested)
-        longitude: latitude to set for the segment (mean of aquisition suggested)
-        aquisition_datetime: datetime to use for the segment( mean of aquisition suggested)
+        latitude: latitude to set for the segment (mean of acquisition suggested)
+        longitude: latitude to set for the segment (mean of acquisition suggested)
+        acquisition_datetime: datetime to use for the segment( mean of acquisition suggested)
         isofit_path: base path to isofit installation (needed for data path references)
 
     :Returns
@@ -485,8 +485,8 @@ def load_climatology(config_path: str, latitude: float, longitude: float, aquisi
     logging.INFO('Loading Climatology')
     # If a configuration path has been provided, use it to get relevant info
     if config_path is not None:
-        month = aquisition_datetime.timetuple().tm_mon
-        year = aquisition_datetime.timetuple().tm_year
+        month = acquisition_datetime.timetuple().tm_mon
+        year = acquisition_datetime.timetuple().tm_year
         with open(config_path, 'r') as fin:
             for case in json.load(fin)['cases']:
                 match = True
@@ -567,6 +567,22 @@ def get_time_from_obs(obs_filename: str, time_band: int = 9, max_flight_duration
 def write_modtran_template(atmosphere_type: str, fid: str, altitude_km: float, dayofyear: int,
                            latitude: float, longitude: float, to_sensor_azimuth: float, gmtime: float,
                            elevation_km: float, output_file: str ):
+    """ Write a MODTRAN template file for use by isofit look up tables
+    Args:
+        atmosphere_type: label for the type of atmospheric profile to use in modtran
+        fid: flight line id (name)
+        altitude_km: altitude of the sensor in km
+        dayofyear: the current day of the given year
+        latitude: acquisition latitude
+        longitude: acquisition longitude
+        to_sensor_azimuth: azimuth view angle to the sensor, in degrees TODO - verify that this is/should be in degrees
+        gmtime: greenwich mean time
+        elevation_km: elevation of the land surface in km
+        output_file: location to write the modtran template file to
+
+    :Returns:
+        None
+    """
     # make modtran configuration
     h2o_template = {"MODTRAN": [{
         "MODTRANINPUT": {
