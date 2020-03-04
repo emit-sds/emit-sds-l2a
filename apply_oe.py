@@ -348,6 +348,7 @@ def main():
         # Run modtran retrieval
         logging.info('H2O first guess')
         retrieval_h2o = isofit.Isofit(h2o_config_path, level='DEBUG')
+        retrieval_h2o.run()
 
         # clean up unneeded storage
         for to_rm in ['*r_k', '*t_k', '*tp7', '*wrn', '*psc', '*plt', '*7sc', '*acd']:
@@ -442,6 +443,7 @@ def main():
         # Run modtran retrieval
         logging.info('Running ISOFIT with full LUT')
         retrieval_full = isofit.Isofit(modtran_config_path, level='DEBUG')
+        retrieval_full.run()
 
         # clean up unneeded storage
         for to_rm in ['*r_k', '*t_k', '*tp7', '*wrn', '*psc', '*plt', '*7sc', '*acd']:
