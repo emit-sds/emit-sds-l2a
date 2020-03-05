@@ -170,11 +170,14 @@ def main():
     segmentation_size = 400
     num_integrations = 400
 
-    num_elev_lut_elements = 3
+    num_elev_lut_elements = 1
     elev_lut_grid_margin = 0.1
 
     h2o_min = 0.2
-    num_h2o_lut_elements = 10
+    num_h2o_lut_elements = 5
+
+    num_to_sensor_azimuth_lut_elements = 1
+    num_to_sensor_zenith_lut_elements = 1
 
     uncorrelated_radiometric_uncertainty = 0.02
 
@@ -270,15 +273,27 @@ def main():
 
     # make view zenith and azimuth grids
     geom_margin = eps * 2.0
-    to_sensor_zenith_lut_grid = np.array([max((to_sensor_zenith[valid].min() - geom_margin), 0),
-                                          180.0])
-    to_sensor_azimuth_lut_grid = np.array([(to_sensor_azimuth[valid].min() - geom_margin) % 360,
-                                           (to_sensor_azimuth[valid].max() + geom_margin) % 360])
+    
+    if (num_to_sensor_zenith_lut_elements == 1):
+        to_sensor_zenith_lut_grid = [np.mean(to_sensor_zenith[valid])]
+    else:
+        to_sensor_zenith_lut_grid = np.linspace(max((to_sensor_zenith[valid].min() - geom_margin), 0),
+                                                180.0,num_to_sensor_zenith_lut_elements)
+
+    if (num_to_sensor_azimuth_lut_elements == 1):
+        to_sensor_azimuth_lut_grid = [mean_to_sensor_azimuth]
+    else:
+        to_sensor_azimuth_lut_grid = np.linspace((to_sensor_azimuth[valid].min() - geom_margin) % 360,
+                                                 (to_sensor_azimuth[valid].max() + geom_margin) % 360,
+                                                 num_to_sensor_azimuth_lut_elements)
 
     # make elevation grid
-    elevation_lut_grid = np.linspace(max(elevation_km[valid].min(), eps),
-                                     elevation_km[valid].max() + elev_lut_grid_margin,
-                                     num_elev_lut_elements)
+    if (num_elev_lut_elements == 1):
+        elevation_lut_grid = [mean_elevation_km]
+    else:
+        elevation_lut_grid = np.linspace(max(elevation_km[valid].min(), eps),
+                                         elevation_km[valid].max() + elev_lut_grid_margin,
+                                         num_elev_lut_elements)
 
     # write wavelength file
     wl_data = np.concatenate([np.arange(len(wl))[:, np.newaxis], wl[:, np.newaxis],
@@ -348,7 +363,7 @@ def main():
         # Run modtran retrieval
         logging.info('H2O first guess')
         retrieval_h2o = isofit.Isofit(h2o_config_path, level='DEBUG')
-        retrieval_h2o.run()
+        #retrieval_h2o.run()
 
         # clean up unneeded storage
         for to_rm in ['*r_k', '*t_k', '*tp7', '*wrn', '*psc', '*plt', '*7sc', '*acd']:
@@ -443,14 +458,15 @@ def main():
         # Run modtran retrieval
         logging.info('Running ISOFIT with full LUT')
         retrieval_full = isofit.Isofit(modtran_config_path, level='DEBUG')
-        retrieval_full.run()
+        #retrieval_full.run()
 
         # clean up unneeded storage
         for to_rm in ['*r_k', '*t_k', '*tp7', '*wrn', '*psc', '*plt', '*7sc', '*acd']:
             cmd = 'rm ' + join(lut_modtran_directory, to_rm)
-            logging.INFO(cmd)
+            logging.info(cmd)
             os.system(cmd)
 
+    quit()
     if not exists(rfl_working_path) or not exists(uncert_working_path):
         # Empirical line
         logging.info('Empirical line inference')
@@ -514,7 +530,7 @@ def load_climatology(config_path: str, latitude: float, longitude: float, acquis
             "prior_sigma": 10.0,
             "prior_mean": 0.25}}
 
-    logging.INFO('Loading Climatology')
+    logging.info('Loading Climatology')
     # If a configuration path has been provided, use it to get relevant info
     if config_path is not None:
         month = acquisition_datetime.timetuple().tm_mon
@@ -522,9 +538,9 @@ def load_climatology(config_path: str, latitude: float, longitude: float, acquis
         with open(config_path, 'r') as fin:
             for case in json.load(fin)['cases']:
                 match = True
-                logging.INFO('matching', latitude, longitude, month, year)
+                logging.info('matching', latitude, longitude, month, year)
                 for criterion, interval in case['criteria'].items():
-                    logging.INFO(criterion, interval, '...')
+                    logging.info(criterion, interval, '...')
                     if criterion == 'latitude':
                         if latitude < interval[0] or latitude > interval[1]:
                             match = False
@@ -544,7 +560,7 @@ def load_climatology(config_path: str, latitude: float, longitude: float, acquis
                     aerosol_model_path = case['aerosol_mdl_path']
                     break
 
-    logging.INFO('Climatology Loaded.  Aerosol State Vector:\n{}\nAerosol LUT Grid:\n{}\nAerosol model path:{}'.format(
+    logging.info('Climatology Loaded.  Aerosol State Vector:\n{}\nAerosol LUT Grid:\n{}\nAerosol model path:{}'.format(
         aerosol_state_vector, aerosol_lut_grid, aerosol_model_path))
     return aerosol_state_vector, aerosol_lut_grid, aerosol_model_path
 
