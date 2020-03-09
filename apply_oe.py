@@ -325,7 +325,7 @@ class Pathnames():
         files_to_stage = [(self.input_radiance_file, self.radiance_working_path, True),
                           (self.input_obs_file, self.obs_working_path, True),
                           (self.input_loc_file, self.loc_working_path, True),
-                          (self.surface_path, self.surface_working_path, True)]
+                          (self.surface_path, self.surface_working_path, False)]
 
         if (self.input_channelized_uncertainty_path is not None):
             files_to_stage.append((self.input_channelized_uncertainty_path, self.channelized_uncertainty_working_path, False))
