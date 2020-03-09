@@ -141,6 +141,7 @@ def main():
     logging.info('Path (km): %f, To-sensor Zenith (rad): %f, Mean Altitude: %6.2f km' %
                  (mean_path_km, mean_to_sensor_zenith_rad, mean_altitude_km))
 
+
     if not exists(paths.h2o_subs_path + '.hdr') or not exists(paths.h2o_subs_path):
 
         write_modtran_template(atmosphere_type='ATM_MIDLAT_SUMMER', fid=paths.fid, altitude_km=mean_altitude_km,
@@ -172,6 +173,9 @@ def main():
 
     h2o_lut_grid = np.linspace(np.percentile(
         h2o_est[h2o_est > h2o_min], 5), np.percentile(h2o_est[h2o_est > h2o_min], 95), num_h2o_lut_elements)
+
+    #TODO: update to also include aerosols
+    logging.info('Full (non-aerosol) LUTs:\nElevation: {}\nTo-sensor azimuth: {}\nTo-sensor zenith: {}\nh2o-vis: {}:'.format(elevation_lut_grid, to_sensor_azimuth_lut_grid, to_sensor_zenith_lut_grid, h2o_lut_grid))
 
     logging.info(paths.state_subs_path)
     if not exists(paths.state_subs_path) or \
@@ -321,10 +325,10 @@ class Pathnames():
         files_to_stage = [(self.input_radiance_file, self.radiance_working_path, True),
                           (self.input_obs_file, self.obs_working_path, True),
                           (self.input_loc_file, self.loc_working_path, True),
-                          (self.surface_path, self.surface_working_path)]
+                          (self.surface_path, self.surface_working_path, True)]
 
         if (self.input_channelized_uncertainty_path is not None):
-            files_to_stage.append((self.input_channelized_uncertainty_path, self.channelized_uncertainty_working_path))
+            files_to_stage.append((self.input_channelized_uncertainty_path, self.channelized_uncertainty_working_path, False))
         else:
             self.channelized_uncertainty_working_path = None
             logging.info('No valid channelized uncertainty file found, proceeding without uncertainty')
@@ -475,9 +479,9 @@ def get_metadata_from_obs(obs_file: str, trim_lines: int = 5,
     valid = np.zeros((obs_dataset.RasterYSize, obs_dataset.RasterXSize), dtype=bool)
 
     path_km = np.zeros((obs_dataset.RasterYSize, obs_dataset.RasterXSize))
-    to_sensor_azimuth = np.zeros((obs_dataset.RasterYSize, obs_dataset.RasterYSize))
-    to_sensor_zenith = np.zeros((obs_dataset.RasterYSize, obs_dataset.RasterYSize))
-    time = np.zeros((obs_dataset.RasterYSize, obs_dataset.RasterYSize))
+    to_sensor_azimuth = np.zeros((obs_dataset.RasterYSize, obs_dataset.RasterXSize))
+    to_sensor_zenith = np.zeros((obs_dataset.RasterYSize, obs_dataset.RasterXSize))
+    time = np.zeros((obs_dataset.RasterYSize, obs_dataset.RasterXSize))
 
     for line in range(obs_dataset.RasterYSize):
 
@@ -485,12 +489,12 @@ def get_metadata_from_obs(obs_file: str, trim_lines: int = 5,
         obs_line = obs_dataset.ReadAsArray(0, line, obs_dataset.RasterXSize, 1)
 
         # Populate valid
-        valid[np.logical_not(np.any(obs_line == nodata_value,axis=0))] = True
+        valid[line,:] = np.logical_not(np.any(obs_line == nodata_value,axis=0))
 
-        path_km[line,:] = obs_line[0, line, :] / 1000.
-        to_sensor_azimuth[line,:] = obs_line[1, line, :]
-        to_sensor_zenith[line,:] = 180. - obs_line[2, line, :]
-        time[line,:] = obs_line[9, line, :]
+        path_km[line,:] = obs_line[0, ...] / 1000.
+        to_sensor_azimuth[line,:] = obs_line[1, ...]
+        to_sensor_zenith[line,:] = 180. - obs_line[2, ...]
+        time[line,:] = obs_line[9, ...]
 
     if trim_lines != 0:
         actual_valid = valid.copy()
@@ -558,7 +562,7 @@ def get_metadata_from_loc(loc_file: str, trim_lines: int = 5,
     loc_data = np.zeros((loc_dataset.RasterCount, loc_dataset.RasterYSize, loc_dataset.RasterXSize))
     for line in range(loc_dataset.RasterYSize):
         # Read line in
-        loc_data[:,line,:] = loc_dataset.ReadAsArray(0, line, loc_dataset.RasterXSize, 1)
+        loc_data[:,line:line+1,:] = loc_dataset.ReadAsArray(0, line, loc_dataset.RasterXSize, 1)
 
     valid = np.logical_not(np.any(loc_data == nodata_value,axis=0))
     if trim_lines != 0:
@@ -569,7 +573,7 @@ def get_metadata_from_loc(loc_file: str, trim_lines: int = 5,
     mean_latitude = np.mean(loc_data[1,valid])
     mean_longitude = -np.mean(loc_data[0,valid])
 
-    mean_elevation_km = loc_data[2,valid] / 1000.0
+    mean_elevation_km = np.mean(loc_data[2,valid]) / 1000.0
 
     # make elevation grid
     if num_elev_lut_elements == 1:
