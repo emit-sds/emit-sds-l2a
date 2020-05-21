@@ -139,11 +139,13 @@ def main():
   SWIRB = s.logical_and(wl>1640, wl<1660)
   SWIRC = s.logical_and(wl>2200, wl<2500)
   b450  = s.argmin(abs(wl-450))
+  b762  = s.argmin(abs(wl-762))
+  b780  = s.argmin(abs(wl-780))
   b1000 = s.argmin(abs(wl-1000))
   b1250 = s.argmin(abs(wl-1250))
   b1650 = s.argmin(abs(wl-1650))
 
-  maskbands = 6
+  maskbands = 7
   mask = s.zeros((rdnlines,maskbands,rdnsamples),dtype=s.float32)
   noise = []
   dt = datetime.strptime(fid, '%Y%m%dt%H%M%S')
@@ -193,6 +195,10 @@ def main():
           # Water threshold as in CORAL
           mask[line,1,:] = rho[:,b1000]<0.05
 
+          # Threshold spacecraft parts using their lack of an O2 A Band
+          mask[line,2,:] = rho[:,b762]/rho[:,b780]) > 0.8
+
+
           for i,j in enumerate(lbl[:,0]):
             if j==0: 
               x[i,:] = -9999.0
@@ -200,15 +206,15 @@ def main():
               x[i,:] = state[int(j),:,0]
              
           max_cloud_height = 3000.0
-          mask[line,2,:] = s.tan(zen) * max_cloud_height / pixel_size
+          mask[line,3,:] = s.tan(zen) * max_cloud_height / pixel_size
           
           # AOD 550 
-          mask[line,3,:] = x[:,aod_bands].sum(axis=1)
+          mask[line,4,:] = x[:,aod_bands].sum(axis=1)
           aerosol_threshold = 0.4
           
-          mask[line,4,:] = x[:,h2o_band].T
+          mask[line,5,:] = x[:,h2o_band].T
 
-          mask[line,5,:] = (mask[line,0,:] + mask[line,2,:] + \
+          mask[line,6,:] = (mask[line,0,:] + mask[line,2,:] + \
                              (mask[line,3,:]>aerosol_threshold)) > 0
           mask[line,:,bad] = -9999.0
 
@@ -218,12 +224,13 @@ def main():
   cloudinv = s.logical_not(s.squeeze(mask[:,0,:]))
   cloudinv[bad] = 1
   cloud_distance = distance_transform_edt(cloudinv)
-  invalid = (s.squeeze(mask[:,2,:]) >= cloud_distance)
-  mask[:,2,:] = invalid.copy()
+  invalid = (s.squeeze(mask[:,3,:]) >= cloud_distance)
+  mask[:,3,:] = invalid.copy()
  
   hdr = rdnhdr.copy()
   hdr['bands'] = str(maskbands)
-  hdr['band names'] = ['Cloud flag', 'Water flag', 'Dilated Cloud Flag',
+  hdr['band names'] = ['Cloud flag', 'Water flag', 'Spacecraft Flag',
+          'Dilated Cloud Flag',
           'AOD550', 'H2O (g cm-2)', 'Aggregate Flag']
   hdr['interleave'] = 'bil'
   del hdr['wavelength']
