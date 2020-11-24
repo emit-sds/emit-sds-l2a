@@ -2,7 +2,7 @@
   "output_model_file": "./surface_EMIT.mat",
   "wavelength_file":   "./wavelengths.txt",
   "normalize":"Euclidean",
-  "reference_windows":[[400,1300],[1450,1700],[2100,2450]],
+  "reference_windows":[[400,1250],[1450,1750],[2050,2450]],
   "sources":
     [
       {
@@ -13,29 +13,34 @@
         "n_components": 2,
         "windows": [
           {
-            "interval":[300,840],
-            "regularizer":100,
-            "correlation":"decorrelated"
+            "interval":[300,420],
+            "regularizer":10,
+            "correlation":"EM"
           },
           {
-            "interval":[840,980],
+            "interval":[420,860],
+            "regularizer":10,
+            "correlation":"EM"
+          },
+          {
+            "interval":[860,1050],
             "regularizer":1e-6,
             "correlation":"EM"
           },
           {
-            "interval":[980,1080],
-            "regularizer":100,
-            "correlation":"decorrelated"
+            "interval":[1050,1050],
+            "regularizer":10,
+            "correlation":"EM"
           },
           {
-            "interval":[1080,1200],
+            "interval":[1050,1250],
             "regularizer":1e-6,
             "correlation":"EM"
           },
           {
-            "interval":[1200,2500],
-            "regularizer":100,
-            "correlation":"decorrelated"
+            "interval":[1250,2500],
+            "regularizer":10,
+            "correlation":"EM"
           }
         ]
       },
@@ -47,29 +52,34 @@
         "n_components": 10,
         "windows": [
           {
-            "interval":[300,840],
-            "regularizer":100,
-            "correlation":"decorrelated"
+            "interval":[300,420],
+            "regularizer":10,
+            "correlation":"EM"
           },
           {
-            "interval":[840,980],
+            "interval":[420,860],
+            "regularizer":10,
+            "correlation":"EM"
+          },
+          {
+            "interval":[860,1050],
             "regularizer":1e-6,
             "correlation":"EM"
           },
           {
-            "interval":[980,1080],
-            "regularizer":100,
-            "correlation":"decorrelated"
+            "interval":[1050,1050],
+            "regularizer":10,
+            "correlation":"EM"
           },
           {
-            "interval":[1080,1200],
+            "interval":[1050,1250],
             "regularizer":1e-6,
             "correlation":"EM"
           },
           {
-            "interval":[1200,2500],
-            "regularizer":100,
-            "correlation":"decorrelated"
+            "interval":[1250,2500],
+            "regularizer":10,
+            "correlation":"EM"
           }
         ]
       },
@@ -81,29 +91,34 @@
         "n_components": 10,
         "windows": [
           {
-            "interval":[300,840],
-            "regularizer":100,
-            "correlation":"decorrelated"
+            "interval":[300,420],
+            "regularizer":10,
+            "correlation":"EM"
           },
           {
-            "interval":[840,980],
+            "interval":[420,860],
+            "regularizer":10,
+            "correlation":"EM"
+          },
+          {
+            "interval":[860,1050],
             "regularizer":1e-6,
             "correlation":"EM"
           },
           {
-            "interval":[980,1080],
-            "regularizer":100,
-            "correlation":"decorrelated"
+            "interval":[1050,1050],
+            "regularizer":10,
+            "correlation":"EM"
           },
           {
-            "interval":[1080,1200],
+            "interval":[1050,1250],
             "regularizer":1e-6,
             "correlation":"EM"
           },
           {
-            "interval":[1200,2500],
-            "regularizer":100,
-            "correlation":"decorrelated"
+            "interval":[1250,2500],
+            "regularizer":10,
+            "correlation":"EM"
           }
         ]
       },
@@ -115,29 +130,34 @@
         "n_components": 10,
         "windows": [
           {
-            "interval":[300,840],
-            "regularizer":100,
-            "correlation":"decorrelated"
+            "interval":[300,420],
+            "regularizer":10,
+            "correlation":"EM"
           },
           {
-            "interval":[840,980],
+            "interval":[420,860],
+            "regularizer":10,
+            "correlation":"EM"
+          },
+          {
+            "interval":[860,1050],
             "regularizer":1e-6,
             "correlation":"EM"
           },
           {
-            "interval":[980,1080],
-            "regularizer":100,
-            "correlation":"decorrelated"
+            "interval":[1050,1050],
+            "regularizer":10,
+            "correlation":"EM"
           },
           {
-            "interval":[1080,1200],
+            "interval":[1050,1250],
             "regularizer":1e-6,
             "correlation":"EM"
           },
           {
-            "interval":[1200,2500],
-            "regularizer":100,
-            "correlation":"decorrelated"
+            "interval":[1250,2500],
+            "regularizer":10,
+            "correlation":"EM"
           }
         ]
       },
@@ -149,29 +169,34 @@
         "n_components": 1,
         "windows": [
           {
-            "interval":[300,840],
-            "regularizer":100,
-            "correlation":"decorrelated"
+            "interval":[300,420],
+            "regularizer":10,
+            "correlation":"EM"
           },
           {
-            "interval":[840,980],
+            "interval":[420,860],
+            "regularizer":10,
+            "correlation":"EM"
+          },
+          {
+            "interval":[860,1050],
             "regularizer":1e-6,
             "correlation":"EM"
           },
           {
-            "interval":[980,1080],
-            "regularizer":100,
-            "correlation":"decorrelated"
+            "interval":[1050,1050],
+            "regularizer":10,
+            "correlation":"EM"
           },
           {
-            "interval":[1080,1200],
+            "interval":[1050,1250],
             "regularizer":1e-6,
             "correlation":"EM"
           },
           {
-            "interval":[1200,2500],
-            "regularizer":100,
-            "correlation":"decorrelated"
+            "interval":[1250,2500],
+            "regularizer":10,
+            "correlation":"EM"
           }
         ]
       },
@@ -183,29 +208,34 @@
         "n_components": 2,
         "windows": [
           {
-            "interval":[300,840],
-            "regularizer":100,
-            "correlation":"decorrelated"
+            "interval":[300,420],
+            "regularizer":10,
+            "correlation":"EM"
           },
           {
-            "interval":[840,980],
+            "interval":[420,860],
+            "regularizer":10,
+            "correlation":"EM"
+          },
+          {
+            "interval":[860,1050],
             "regularizer":1e-6,
             "correlation":"EM"
           },
           {
-            "interval":[980,1080],
-            "regularizer":100,
-            "correlation":"decorrelated"
+            "interval":[1050,1050],
+            "regularizer":10,
+            "correlation":"EM"
           },
           {
-            "interval":[1080,1200],
+            "interval":[1050,1250],
             "regularizer":1e-6,
             "correlation":"EM"
           },
           {
-            "interval":[1200,2500],
-            "regularizer":100,
-            "correlation":"decorrelated"
+            "interval":[1250,2500],
+            "regularizer":10,
+            "correlation":"EM"
           }
         ]
       }
