@@ -6,6 +6,7 @@ import sys
 import argparse
 from scipy import logical_and as aand
 import scipy as s
+import numpy as np
 import spectral
 import spectral.io.envi as envi
 from scipy.stats.stats import mode
@@ -113,7 +114,6 @@ def main():
 
   # find pixel size
   pixel_size = float(rdnhdr['map info'][5].strip())
-  print(pixel_size)
   
   # find solar zenith 
   fid = os.path.split(args.rdnfile)[1].split('_')[0]
@@ -121,6 +121,7 @@ def main():
      fid = fid.replace(prefix,'')
   dt = datetime.strptime(fid, '%Y%m%dt%H%M%S')
   day_of_year = dt.timetuple().tm_yday
+  print(day_of_year,dt.tm_hour)
 
   # convert from microns to nm
   if not any(wl>100): 
@@ -175,11 +176,12 @@ def main():
           
           elevation_m  = loc[:,2]
           latitude     = loc[:,1]
-          longitude    = loc[:,0]
-          longitudeE   = -loc[:,0]
+          longitudeE   = loc[:,0]
+          print(np.median(latitude),np.median(longitudeE),np.median(elevation_m),dt)
           az, zen, ra, dec, h = sunpos(dt, latitude, longitudeE,
                          elevation_m, radians=True).T
-          
+         
+          print('solar zenith:',np.median(zen))
           rho = (((rdn * s.pi) / (irr_resamp.T)).T / s.cos(zen)).T
 
           rho[rho[:,0]<-9990,:] = -9999.0
@@ -188,15 +190,16 @@ def main():
           bad = (latitude<-9990).T
           
           # Cloud threshold from Sandford et al.
-          mask[line,0,:] = ((rho[:,b450]>0.28) + \
-                            (rho[:,b1250]>0.46) + \
-                            (rho[:,b1650]>0.22)) > 2
+          total = np.array(rho[:,b450]>0.28,dtype=int) + \
+                  np.array(rho[:,b1250]>0.46,dtype=int) + \
+                  np.array(rho[:,b1650]>0.22,dtype=int)
+          mask[line,0,:] = total > 2
 
           # Water threshold as in CORAL
-          mask[line,1,:] = rho[:,b1000]<0.05
+          mask[line,1,:] = np.array(rho[:,b1000]<0.05,dtype=int)
 
           # Threshold spacecraft parts using their lack of an O2 A Band
-          mask[line,2,:] = rho[:,b762]/rho[:,b780]) > 0.8
+          mask[line,2,:] = np.array(rho[:,b762]/rho[:,b780] > 0.8,dtype=int)
 
 
           for i,j in enumerate(lbl[:,0]):
@@ -214,8 +217,8 @@ def main():
           
           mask[line,5,:] = x[:,h2o_band].T
 
-          mask[line,6,:] = (mask[line,0,:] + mask[line,2,:] + \
-                             (mask[line,3,:]>aerosol_threshold)) > 0
+          mask[line,6,:] = np.array((mask[line,0,:] + mask[line,2,:] + \
+                             (mask[line,3,:]>aerosol_threshold)) > 0, dtype=int)
           mask[line,:,bad] = -9999.0
 
   bad = s.squeeze(mask[:,0,:])<-9990
