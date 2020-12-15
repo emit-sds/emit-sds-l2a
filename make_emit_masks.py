@@ -144,9 +144,10 @@ def main():
   b780  = s.argmin(abs(wl-780))
   b1000 = s.argmin(abs(wl-1000))
   b1250 = s.argmin(abs(wl-1250))
+  b1380 = s.argmin(abs(wl-1380))
   b1650 = s.argmin(abs(wl-1650))
 
-  maskbands = 7
+  maskbands = 8
   mask = s.zeros((rdnlines,maskbands,rdnsamples),dtype=s.float32)
   noise = []
   dt = datetime.strptime(fid, '%Y%m%dt%H%M%S')
@@ -177,11 +178,9 @@ def main():
           elevation_m  = loc[:,2]
           latitude     = loc[:,1]
           longitudeE   = loc[:,0]
-          print(np.median(latitude),np.median(longitudeE),np.median(elevation_m),dt)
           az, zen, ra, dec, h = sunpos(dt, latitude, longitudeE,
                          elevation_m, radians=True).T
          
-          print('solar zenith:',np.median(zen))
           rho = (((rdn * s.pi) / (irr_resamp.T)).T / s.cos(zen)).T
 
           rho[rho[:,0]<-9990,:] = -9999.0
@@ -195,12 +194,14 @@ def main():
                   np.array(rho[:,b1650]>0.22,dtype=int)
           mask[line,0,:] = total > 2
 
+          # Cirrus Threshold from Gao and Goetz, GRL 20:4, 1993
+          mask[line,1,:] = np.array(rho[:,b1380]>0.1,dtype=int)
+
           # Water threshold as in CORAL
-          mask[line,1,:] = np.array(rho[:,b1000]<0.05,dtype=int)
+          mask[line,2,:] = np.array(rho[:,b1000]<0.05,dtype=int)
 
           # Threshold spacecraft parts using their lack of an O2 A Band
-          mask[line,2,:] = np.array(rho[:,b762]/rho[:,b780] > 0.8,dtype=int)
-
+          mask[line,3,:] = np.array(rho[:,b762]/rho[:,b780] > 0.8,dtype=int)
 
           for i,j in enumerate(lbl[:,0]):
             if j==0: 
@@ -209,15 +210,15 @@ def main():
               x[i,:] = state[int(j),:,0]
              
           max_cloud_height = 3000.0
-          mask[line,3,:] = s.tan(zen) * max_cloud_height / pixel_size
+          mask[line,4,:] = s.tan(zen) * max_cloud_height / pixel_size
           
           # AOD 550 
-          mask[line,4,:] = x[:,aod_bands].sum(axis=1)
+          mask[line,5,:] = x[:,aod_bands].sum(axis=1)
           aerosol_threshold = 0.4
           
-          mask[line,5,:] = x[:,h2o_band].T
+          mask[line,6,:] = x[:,h2o_band].T
 
-          mask[line,6,:] = np.array((mask[line,0,:] + mask[line,2,:] + \
+          mask[line,7,:] = np.array((mask[line,0,:] + mask[line,2,:] + \
                              (mask[line,3,:]>aerosol_threshold)) > 0, dtype=int)
           mask[line,:,bad] = -9999.0
 
@@ -227,13 +228,13 @@ def main():
   cloudinv = s.logical_not(s.squeeze(mask[:,0,:]))
   cloudinv[bad] = 1
   cloud_distance = distance_transform_edt(cloudinv)
-  invalid = (s.squeeze(mask[:,3,:]) >= cloud_distance)
-  mask[:,3,:] = invalid.copy()
+  invalid = (s.squeeze(mask[:,4,:]) >= cloud_distance)
+  mask[:,4,:] = invalid.copy()
  
   hdr = rdnhdr.copy()
   hdr['bands'] = str(maskbands)
-  hdr['band names'] = ['Cloud flag', 'Water flag', 'Spacecraft Flag',
-          'Dilated Cloud Flag',
+  hdr['band names'] = ['Cloud flag', 'Cirrus flag','Water flag', 
+          'Spacecraft Flag', 'Dilated Cloud Flag',
           'AOD550', 'H2O (g cm-2)', 'Aggregate Flag']
   hdr['interleave'] = 'bil'
   del hdr['wavelength']
