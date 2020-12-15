@@ -121,7 +121,7 @@ def main():
      fid = fid.replace(prefix,'')
   dt = datetime.strptime(fid, '%Y%m%dt%H%M%S')
   day_of_year = dt.timetuple().tm_yday
-  print(day_of_year,dt.tm_hour)
+  print(day_of_year,dt)
 
   # convert from microns to nm
   if not any(wl>100): 
