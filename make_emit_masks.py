@@ -204,7 +204,7 @@ def main():
           mask[line,3,:] = np.array(rho[:,b762]/rho[:,b780] > 0.8,dtype=int)
 
           for i,j in enumerate(lbl[:,0]):
-            if j==0: 
+            if j<=0: 
               x[i,:] = -9999.0
             else: 
               x[i,:] = state[int(j),:,0]
