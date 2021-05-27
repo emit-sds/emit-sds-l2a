@@ -2,7 +2,7 @@
 
 Welcome to the EMIT Level 2a science data system repository.  To understand how this repository is linked to the rest of the emit-sds repositories, please see [the repository guide](https://github.jpl.nasa.gov/emit-sds/emit-main/wiki/Repository-Guide).
 
-The "surface" subdirectory contains the data files used to generate the EMIT default surface model.  The data files mostly come from the USGS spectral library version 7 (Kokaly et al., 2017), with some adjustments to smooth out artifacts at the periphery.   There are some additional spectra from Tan et al (2016). The python script "make_surface.py" demonstrates how to call the surface model utility.  It must be created anew for each wavelength file.
+The "surface_v2" subdirectory contains the data files used to generate the EMIT default surface model.  The data files mostly come from the USGS spectral library version 7 (Kokaly et al., 2017), with some adjustments to smooth out artifacts at the periphery.   There are some additional spectra from Tan et al (2016). The python script "make_surface.py" demonstrates how to call the surface model utility.  It must be created anew for each wavelength file.
 
 The OE code is best called with the "apply_oe" script in the isofit/utils subdirectory of the isofit repository.  An example command using current best practices might look like:
 
