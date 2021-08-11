@@ -96,12 +96,12 @@
             "correlation":"decorrelated"
           },
           {
-            "interval":[420,785],
+            "interval":[420,880],
             "regularizer":10,
             "correlation":"decorrelated"
           },
           {
-            "interval":[785,1050],
+            "interval":[880,1050],
             "regularizer":1e-6,
             "correlation":"EM"
           },
@@ -135,12 +135,12 @@
             "correlation":"decorrelated"
           },
           {
-            "interval":[420,785],
+            "interval":[420,880],
             "regularizer":10,
             "correlation":"decorrelated"
           },
           {
-            "interval":[785,1050],
+            "interval":[880,1050],
             "regularizer":1e-6,
             "correlation":"EM"
           },
