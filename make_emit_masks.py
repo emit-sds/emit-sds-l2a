@@ -9,19 +9,7 @@ from isofit.core.sunposition import sunpos
 from isofit.core.common import resample_spectrum
 from datetime import datetime
 from scipy.ndimage.morphology import distance_transform_edt
-
-
-# Return the header associated with an image file
-def find_header(imgfile):
-    if os.path.exists(imgfile+'.hdr'):
-        return imgfile+'.hdr'
-    ind = imgfile.rfind('.raw')
-    if ind >= 0:
-        return imgfile[0:ind]+'.hdr'
-    ind = imgfile.rfind('.img')
-    if ind >= 0:
-        return imgfile[0:ind]+'.hdr'
-    raise IOError('No header found for file {0}'.format(imgfile))
+from emit_utils.file_checks import envi_header
 
 
 # parse the command line (perform the correction on all command line arguments)
@@ -40,7 +28,7 @@ def main():
 
     dtypemap = {'4': np.float32, '5': np.float64, '2': np.float16}
 
-    rdnhdrfile = find_header(args.rdnfile)
+    rdnhdrfile = envi_header(args.rdnfile)
     rdnhdr = envi.read_envi_header(rdnhdrfile)
     rdnlines = int(rdnhdr['lines'])
     rdnsamples = int(rdnhdr['samples'])
@@ -48,7 +36,7 @@ def main():
     rdndtype = dtypemap[rdnhdr['data type']]
     rdnframe = rdnsamples * rdnbands
 
-    lochdrfile = find_header(args.locfile)
+    lochdrfile = envi_header(args.locfile)
     lochdr = envi.read_envi_header(lochdrfile)
     loclines = int(lochdr['lines'])
     locsamples = int(lochdr['samples'])
@@ -57,7 +45,7 @@ def main():
     locdtype = dtypemap[lochdr['data type']]
     locframe = locsamples * 3
 
-    lblhdrfile = find_header(args.lblfile)
+    lblhdrfile = envi_header(args.lblfile)
     lblhdr = envi.read_envi_header(lblhdrfile)
     lbllines = int(lblhdr['lines'])
     lblsamples = int(lblhdr['samples'])
@@ -65,7 +53,7 @@ def main():
     lbldtype = dtypemap[lblhdr['data type']]
     lblframe = lblsamples
 
-    statehdrfile = find_header(args.statefile)
+    statehdrfile = envi_header(args.statefile)
     statehdr = envi.read_envi_header(statehdrfile)
     statelines = int(statehdr['lines'])
     statesamples = int(statehdr['samples'])
