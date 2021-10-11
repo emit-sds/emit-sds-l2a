@@ -122,7 +122,7 @@ def main():
         center_x = int(locsamples/2)
         center_pixels = loc_memmap[center_y-1:center_y+1, center_x, :2]
         pixel_size = haversine_distance(
-            center_pixels[0, 0, 1], center_pixels[0, 0, 0], center_pixels[1, 0, 1], center_pixels[1, 0, 0])
+            center_pixels[0, 1], center_pixels[0, 0], center_pixels[1, 1], center_pixels[1, 0])
         del loc_memmap, center_pixels
 
     # find solar zenith
