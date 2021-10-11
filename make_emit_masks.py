@@ -249,7 +249,7 @@ def main():
     hdr['interleave'] = 'bil'
     del hdr['wavelength']
     del hdr['fwhm']
-    envi.write_envi_header(args.outfile+'.hdr', hdr)
+    envi.write_envi_header(envi_header(args.outfile), hdr)
     mask.astype(dtype=np.float32).tofile(args.outfile)
 
 
