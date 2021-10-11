@@ -117,7 +117,7 @@ def main():
     if 'map info' in rdnhdr.keys():
         pixel_size = float(rdnhdr['map info'][5].strip())
     else:
-        loc_memmap = envi.open(args.locfile).open_memmap()
+        loc_memmap = envi.open(lochdrfile).open_memmap()
         center_y = int(loclines/2)
         center_x = int(locsamples/2)
         center_pixels = loc_memmap[center_y-1:center_y+1, center_x, :2]
