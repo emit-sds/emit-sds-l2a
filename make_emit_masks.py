@@ -4,7 +4,7 @@
 import os
 import argparse
 import numpy as np
-import spectral.io.envi as envi
+from spectral.io import envi
 from isofit.core.sunposition import sunpos
 from isofit.core.common import resample_spectrum
 from datetime import datetime
@@ -12,7 +12,30 @@ from scipy.ndimage.morphology import distance_transform_edt
 from emit_utils.file_checks import envi_header
 
 
-# parse the command line (perform the correction on all command line arguments)
+def haversine_distance(lon1, lat1, lon2, lat2, radius=6335439):
+    """ Approximate the great circle distance using Haversine formula
+
+    :param lon1: point one longitude
+    :param lat1: point one latitude
+    :param lon2: point two longitude
+    :param lat2: point two latitude
+    :param radius: radius to use (default is approximate radius at equator)
+
+    :return: great circle distance in radius units
+    """
+    # convert decimal degrees to radians
+    lon1, lat1, lon2, lat2 = map(np.radians, [lon1, lat1, lon2, lat2])
+
+    # haversine formula
+    delta_lon = lon2 - lon1
+    delta_lat = lat2 - lat1
+
+    d = 2 * radius * np.arcsin(np.sqrt(np.sin(delta_lat/2)**2 + np.cos(lat1)
+                               * np.cos(lat2) * np.sin(delta_lon/2)**2))
+
+    return d
+
+
 def main():
 
     parser = argparse.ArgumentParser(description="Remove glint")
@@ -91,7 +114,16 @@ def main():
             aod_bands.append(i)
 
     # find pixel size
-    pixel_size = float(rdnhdr['map info'][5].strip())
+    if 'map info' in rdnhdr.keys():
+        pixel_size = float(rdnhdr['map info'][5].strip())
+    else:
+        loc_memmap = envi.open(args.locfile).open_memmap()
+        center_y = int(loclines/2)
+        center_x = int(locsamples/2)
+        center_pixels = loc_memmap[center_y-1:center_y+1, center_x, :2]
+        pixel_size = haversine_distance(
+            center_pixels[0, 0, 1], center_pixels[0, 0, 0], center_pixels[1, 0, 1], center_pixels[1, 0, 0])
+        del loc_memmap, center_pixels
 
     # find solar zenith
     fid = os.path.split(args.rdnfile)[1].split('_')[0]
@@ -132,7 +164,7 @@ def main():
 
     with open(args.statefile, 'rb') as fstate:
         statesize = statelines * statesamples * statebands
-        state = s.fromfile(fstate, dtype=statedtype, count=statesize)
+        state = np.fromfile(fstate, dtype=statedtype, count=statesize)
         state = state.reshape((statelines, statebands, statesamples))
 
     with open(args.rdnfile, 'rb') as frdn:
