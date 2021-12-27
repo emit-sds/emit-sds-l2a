@@ -9,9 +9,7 @@ from netCDF4 import Dataset
 from emit_utils.daac_converter import add_variable, makeDims, makeGlobalAttr, add_loc, add_glt
 from emit_utils.file_checks import netcdf_ext, envi_header
 from spectral.io import envi
-import os
 import logging
-import numpy as np
 
 
 def main():
