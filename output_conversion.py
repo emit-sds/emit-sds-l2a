@@ -52,7 +52,7 @@ def main():
 
     logging.debug('Creating dimensions')
     makeDims(nc_ds, args.rfl_file, args.glt_file)
-    nc_ds.createDimension('mask_bands', len(mask_ds.metadata['bands']))
+    nc_ds.createDimension('mask_bands', int(mask_ds.metadata['bands']))
 
     logging.debug('Creating and writing reflectance metadata')
     add_variable(nc_ds, "sensor_band_parameters/wavelengths", "f4", "Wavelength Centers", "nm",
