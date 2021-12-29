@@ -19,6 +19,7 @@ def main():
     parser.add_argument('output_filename', type=str, help="Output netcdf filename")
     parser.add_argument('rfl_file', type=str, help="EMIT L2A reflectance ENVI file")
     parser.add_argument('rfl_unc_file', type=str, help="EMIT L2A reflectance uncertainty ENVI file")
+    parser.add_argument('mask_file', type=str, help="EMIT L2A water/cloud mask ENVI file")
     parser.add_argument('loc_file', type=str, help="EMIT L1B location data ENVI file")
     parser.add_argument('glt_file', type=str, help="EMIT L1B glt ENVI file")
     parser.add_argument('--ummg_file', type=str, help="Output UMMG filename")
@@ -33,6 +34,7 @@ def main():
 
     rfl_ds = envi.open(envi_header(args.rfl_file))
     rfl_unc_ds = envi.open(envi_header(args.rfl_unc_file))
+    mask_ds = envi.open(envi_header(args.mask_file))
 
     # make the netCDF4 file
     logging.info(f'Creating netCDF4 file: {args.output_filename}')
@@ -50,26 +52,36 @@ def main():
 
     logging.debug('Creating dimensions')
     makeDims(nc_ds, args.rfl_file, args.glt_file)
+    nc_ds.createDimension('mask_bands', len(mask_ds.metadata['bands']))
 
-    logging.debug('Creating and writing radiance metadata')
+    logging.debug('Creating and writing reflectance metadata')
     add_variable(nc_ds, "sensor_band_parameters/wavelengths", "f4", "Wavelength Centers", "nm",
                  [float(d) for d in rfl_ds.metadata['wavelength']], {"dimensions": ("number_of_bands",)})
-
     add_variable(nc_ds, "sensor_band_parameters/fwhm", "f4", "Full Width at Half Max", "nm",
                  [float(d) for d in rfl_ds.metadata['fwhm']], {"dimensions": ("number_of_bands",)})
 
+    logging.debug('Creating and writing mask metadata')
+    add_variable(nc_ds, "sensor_band_parameters/mask_bands", str, "Mask Band Names", None,
+                 mask_ds.metadata['band names'], {"dimensions": ("mask_bands",)})
+
     logging.debug('Creating and writing location data')
     add_loc(nc_ds, args.loc_file)
+
     logging.debug('Creating and writing glt data')
     add_glt(nc_ds, args.glt_file)
 
+    logging.debug('Write reflectance data')
     add_variable(nc_ds, 'reflectance', "f4", "Surface Reflectance", "unitless", rfl_ds.open_memmap(interleave='bip')[...].copy(),
                  {"dimensions":("number_of_scans", "pixels_per_scan", "number_of_bands")})
     nc_ds.sync()
-
     add_variable(nc_ds, 'reflectance_uncertainty', "f4", "Surface Reflectance Uncertainty", "unitless",
                  rfl_unc_ds.open_memmap(interleave='bip')[...].copy(),
                  {"dimensions":("number_of_scans", "pixels_per_scan", "number_of_bands")})
+    nc_ds.sync()
+
+    logging.debug('Write mask data')
+    add_variable(nc_ds, 'mask', "f4", "Masks", "unitless", mask_ds.open_memmap(interleave='bip')[...].copy(),
+                 {"dimensions":("number_of_scans", "pixels_per_scan", "mask_bands"), "zlib": True})
     nc_ds.sync()
 
     nc_ds.close()
