@@ -96,9 +96,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-    return
-
-
-if __name__ == '__main__':
-    main()
