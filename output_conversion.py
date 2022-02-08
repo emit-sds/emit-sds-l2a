@@ -88,10 +88,6 @@ def main():
     nc_ds.close()
     logging.debug(f'Successfully created {args.output_filename}')
 
-    #TODO add ummg creation
-    import subprocess
-    subprocess.call(f'touch {args.ummg_file}',shell=True)
-
     return
 
 
