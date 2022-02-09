@@ -1,6 +1,0 @@
-name: emit-sds-l2a-test
-channels:
-  - defaults
-dependencies:
-  - python=3.7.7
-  - gdal=3.0
