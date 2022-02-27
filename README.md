@@ -11,10 +11,10 @@ L2A consists of three components:
 
 
 ## Surface Model Construction
-The  "surface_v2" subdirectory contains the data files used to generate the EMIT default surface model.  The data files mostly come from the USGS spectral library version 7 [(Kokaly et al., 2017)](https://dx.doi.org/10.5066/F7RR1WDJ), with some additional spectra from [Tan et al (2016)](https://doi.org/10.3390/rs8060517).  Some adjustments to smooth out artifacts at the periphery were included, and the finalized, adjusted spectra can be found at these locations: [snow / ice](https://doi.org/10.21232/xhgtM3A9), [vegetation](https://doi.org/10.21232/6sQDNjfv), [water](https://doi.org/10.21232/ZbyfMgxY), and [other](https://doi.org/10.21232/ezrQtdcw). To construct the surface model, utilize the "surface_model" utility in the isofit/utils subdirectory of the [isofit repository](https://github.com/isofit/isofit).  An example call may look like:
+The  "surface_v2" subdirectory contains the data files used to generate the EMIT default surface model.  The data files mostly come from the USGS spectral library version 7 [(Kokaly et al., 2017)](https://dx.doi.org/10.5066/F7RR1WDJ), with some additional spectra from [Tan et al (2016)](https://doi.org/10.3390/rs8060517).  Some adjustments to smooth out artifacts at the periphery were included, and the finalized, adjusted spectra can be found at these locations: [snow / ice](https://doi.org/10.21232/xhgtM3A9), [vegetation](https://doi.org/10.21232/6sQDNjfv), [water](https://doi.org/10.21232/ZbyfMgxY), and [other](https://doi.org/10.21232/ezrQtdcw). To construct the surface model, utilize the "surface_model" utility in the isofit/utils subdirectory of the [isofit repository](https://github.com/isofit/isofit).  An example call, made from inside surface_v2, may look like:
 
 ```
-python -c "from isofit.utils import surface_model; surface_model('configs/surface.json')"
+python -c "from isofit.utils import surface_model; surface_model('./surface.json')"
 ```
 
 This will create an output .mat file, at the location specified by "output_model_file" in the json configuration file.  This surface model will be passed into subsequent calls to apply_oe (see below) and need only be generated once for general use (though specific investigations may require custom surface models).
