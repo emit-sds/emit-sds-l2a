@@ -43,28 +43,8 @@ def haversine_distance(lon1, lat1, lon2, lat2, radius=6335439):
     return d
 
 
-def _write_bil_chunk(dat: np.array, outfile: str, line: int, shape: tuple, dtype: str = 'float32') -> None:
-    """
-    Write a chunk of data to a binary, BIL formatted data cube.
-    Args:
-        dat: data to write
-        outfile: output file to write to
-        line: line of the output file to write to
-        shape: shape of the output file
-        dtype: output data type
-
-    Returns:
-        None
-    """
-    outfile = open(outfile, 'rb+')
-    outfile.seek(line * shape[1] * shape[2] * np.dtype(dtype).itemsize)
-    outfile.write(dat.astype(dtype).tobytes())
-    outfile.close()
-
-
-
 @ray.remote
-def build_line_masks(start_line: int, stop_line: int, rdnfile: str, locfile: str, lblfile: str, state: np.array, rhofile: str, dt: datetime, h2o_band: np.array, aod_bands: np.array, pixel_size: float, outfile: str, wl: np.array, irr: np.array):
+def build_line_masks(start_line: int, stop_line: int, rdnfile: str, locfile: str, lblfile: str, state: np.array, dt: datetime, h2o_band: np.array, aod_bands: np.array, pixel_size: float, outfile: str, wl: np.array, irr: np.array):
     # determine glint bands having negligible water reflectance
     BLUE = np.logical_and(wl > 440, wl < 460)
     NIR = np.logical_and(wl > 950, wl < 1000)
@@ -98,7 +78,6 @@ def build_line_masks(start_line: int, stop_line: int, rdnfile: str, locfile: str
         rho = (((rdn * np.pi) / (irr.T)).T / np.cos(zen)).T
 
         rho[rho[:, 0] < -9990, :] = -9999.0
-        _write_bil_chunk(rho.T.astype(np.float32), rhofile, line, (rdn_ds.shape[0], rho.shape[1], rdn_ds.shape[2]))
         bad = (latitude < -9990).T
 
         # Cloud threshold from Sandford et al.
@@ -138,8 +117,7 @@ def build_line_masks(start_line: int, stop_line: int, rdnfile: str, locfile: str
                                (mask[line, 3, :] > aerosol_threshold)) > 0, dtype=int)
         mask[:, bad] = -9999.0
 
-        _write_bil_chunk(mask.astype(np.float32), outfile, line, (rdn_ds.shape[0], mask.shape[1], rdn_ds.shape[2]))
-
+        return mask, line
 
 
 def main():
@@ -150,7 +128,6 @@ def main():
     parser.add_argument('lblfile', type=str, metavar='SUBSET_LABELS')
     parser.add_argument('statefile', type=str, metavar='STATE_SUBSET')
     parser.add_argument('irrfile', type=str, metavar='SOLAR_IRRADIANCE')
-    parser.add_argument('rhofile', type=str, metavar='OUTPUT_RHO')
     parser.add_argument('outfile', type=str, metavar='OUTPUT_MASKS')
     parser.add_argument('--wavelengths', type=str, default=None)
     parser.add_argument('--n_cores', type=int, default=-1)
@@ -228,17 +205,10 @@ def main():
     driver = gdal.GetDriverByName('ENVI')
     driver.Register()
 
-    #TODO: careful about output datatypes / format
     outDataset = driver.Create(args.outfile, rdn_shp[2], rdn_shp[0], maskbands, gdal.GDT_Float32, options=['INTERLEAVE=BIL'])
     outDataset.SetProjection(rdn_dataset.GetProjection())
     outDataset.SetGeoTransform(rdn_dataset.GetGeoTransform())
     del outDataset
-
-    outDataset = driver.Create(args.rhofile, rdn_shp[2], rdn_shp[0], rdn_dataset.RasterCount, gdal.GDT_Float32, options=['INTERLEAVE=BIL'])
-    outDataset.SetProjection(rdn_dataset.GetProjection())
-    outDataset.SetGeoTransform(rdn_dataset.GetGeoTransform())
-    del outDataset
-
 
     rayargs = {'local_mode': args.n_cores == 1}
     if args.n_cores <= 0:
@@ -246,17 +216,18 @@ def main():
     rayargs['num_cpus'] = args.n_cores
     ray.init(**rayargs)
 
-
     linebreaks = np.linspace(0, rdn_shp[0], num=args.n_cores*3).astype(int)
 
+    state = envi.open(args.statefile).open_memmap(interleave='bil').copy()
     stateid = ray.put(state)
     irrid = ray.put(irr_resamp)
-    jobs = [build_line_masks(linebreaks[_l], linebreaks[_l+1], args.rdnfile, args.locfile, args.lblfile, stateid, args.rhofile, dt, h2o_band, aod_bands, pixel_size, args.outfile, wl, irrid) for _l in range(len(linebreaks)-1)]
+    jobs = [build_line_masks(linebreaks[_l], linebreaks[_l+1], args.rdnfile, args.locfile, args.lblfile, stateid, dt, h2o_band, aod_bands, pixel_size, args.outfile, wl, irrid) for _l in range(len(linebreaks)-1)]
     rreturn = [ray.get(jid) for jid in jobs]
-    ray.shutdown()
 
-    mask = envi.open(args.maskfile).open_memmap(interleave='bil').copy()
-    state = envi.open(args.statefile).open_memmap(interleave='bil').copy()
+    mask = np.zeros((rdn_shp[0], maskbands, rdn_shp[2]))
+    for lm, line in rreturn:
+        mask[line,...] = lm
+    ray.shutdown()
 
     bad = np.squeeze(mask[:, 0, :]) < -9990
     good = np.squeeze(mask[:, 0, :]) > -9990
