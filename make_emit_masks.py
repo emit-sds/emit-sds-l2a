@@ -59,14 +59,16 @@ def build_line_masks(start_line: int, stop_line: int, rdnfile: str, locfile: str
     b1380 = np.argmin(abs(wl-1380))
     b1650 = np.argmin(abs(wl-1650))
 
-    rdn_ds = envi.open(rdnfile).open_memmap(interleave='bil')
-    loc_ds = envi.open(locfile).open_memmap(interleave='bil')
-    lbl_ds = envi.open(lblfile).open_memmap(interleave='bil')
+    rdn_ds = envi.open(envi_header(rdnfile)).open_memmap(interleave='bil')
+    loc_ds = envi.open(envi_header(locfile)).open_memmap(interleave='bil')
+    lbl_ds = envi.open(envi_header(lblfile)).open_memmap(interleave='bil')
 
+    return_mask = np.zeros((stop_line - start_line, 8, rdn_ds.shape[2]))
     for line in range(start_line, stop_line):
-        loc = loc_ds[line,...].copy().astype(np.float32)
-        rdn = rdn_ds[line,...].copy().astype(np.float32)
-        lbl = lbl_ds[line,...].copy().astype(np.float32)
+        print(f'{line} / {stop_line - start_line}')
+        loc = loc_ds[line,...].copy().astype(np.float32).T
+        rdn = rdn_ds[line,...].copy().astype(np.float32).T
+        lbl = lbl_ds[line,...].copy().astype(np.float32).T
         x = np.zeros((rdn.shape[0], state.shape[1]))
 
         elevation_m = loc[:, 2]
@@ -86,7 +88,7 @@ def build_line_masks(start_line: int, stop_line: int, rdnfile: str, locfile: str
             np.array(rho[:, b1650] > 0.22, dtype=int)
 
         maskbands = 8
-        mask = np.zeros(maskbands, rdn.shape[0])
+        mask = np.zeros((maskbands, rdn.shape[0]))
         mask[0, :] = total > 2
 
         # Cirrus Threshold from Gao and Goetz, GRL 20:4, 1993
@@ -113,11 +115,12 @@ def build_line_masks(start_line: int, stop_line: int, rdnfile: str, locfile: str
 
         mask[6, :] = x[:, h2o_band].T
 
-        mask[7, :] = np.array((mask[line, 0, :] + mask[line, 2, :] +
-                               (mask[line, 3, :] > aerosol_threshold)) > 0, dtype=int)
+        mask[7, :] = np.array((mask[0, :] + mask[2, :] +
+                               (mask[3, :] > aerosol_threshold)) > 0, dtype=int)
         mask[:, bad] = -9999.0
+        return_mask[line - start_line,...] = mask.copy()
 
-        return mask, line
+    return return_mask, start_line, stop_line
 
 
 def main():
@@ -137,14 +140,14 @@ def main():
     state_hdr = envi.read_envi_header(envi_header(args.statefile))
     rdn_shp = envi.open(envi_header(args.rdnfile)).open_memmap(interleave='bil').shape
     lbl_shp = envi.open(envi_header(args.lblfile)).open_memmap(interleave='bil').shape
-    loc_shp = envi.read_envi_header(envi_header(args.locfile)).open_memmap(interleave='bil').shape
+    loc_shp = envi.open(envi_header(args.locfile)).open_memmap(interleave='bil').shape
 
     # Check file size consistency
     if loc_shp[0] != rdn_shp[0] or loc_shp[2] != rdn_shp[2]:
         raise ValueError('LOC and input file dimensions do not match.')
     if lbl_shp[0] != rdn_shp[0] or lbl_shp[2] != rdn_shp[2]:
         raise ValueError('Label and input file dimensions do not match.')
-    if loc_shp[0] != 3:
+    if loc_shp[1] != 3:
         raise ValueError('LOC file should have three bands.')
 
     # Get wavelengths and bands
@@ -185,6 +188,7 @@ def main():
     for prefix in ['prm', 'ang', 'emit']:
         fid = fid.replace(prefix, '')
     dt = datetime.strptime(fid, '%Y%m%dt%H%M%S')
+
     day_of_year = dt.timetuple().tm_yday
     print(day_of_year, dt)
 
@@ -218,16 +222,16 @@ def main():
 
     linebreaks = np.linspace(0, rdn_shp[0], num=args.n_cores*3).astype(int)
 
-    state = envi.open(args.statefile).open_memmap(interleave='bil').copy()
+    state = envi.open(envi_header(args.statefile)).open_memmap(interleave='bil').copy()
     stateid = ray.put(state)
     irrid = ray.put(irr_resamp)
-    jobs = [build_line_masks(linebreaks[_l], linebreaks[_l+1], args.rdnfile, args.locfile, args.lblfile, stateid, dt, h2o_band, aod_bands, pixel_size, args.outfile, wl, irrid) for _l in range(len(linebreaks)-1)]
+    jobs = [build_line_masks.remote(linebreaks[_l], linebreaks[_l+1], args.rdnfile, args.locfile, args.lblfile, stateid, dt, h2o_band, aod_bands, pixel_size, args.outfile, wl, irrid) for _l in range(len(linebreaks)-1)]
     rreturn = [ray.get(jid) for jid in jobs]
+    ray.shutdown()
 
     mask = np.zeros((rdn_shp[0], maskbands, rdn_shp[2]))
-    for lm, line in rreturn:
-        mask[line,...] = lm
-    ray.shutdown()
+    for lm, start_line, stop_line in rreturn:
+        mask[start_line:stop_line,...] = lm
 
     bad = np.squeeze(mask[:, 0, :]) < -9990
     good = np.squeeze(mask[:, 0, :]) > -9990
