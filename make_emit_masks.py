@@ -1,8 +1,13 @@
-#!/home/dthompson/src/anaconda/bin/python
-# David R Thompson
+"""
+Mask generation for imaging spectroscopy, oriented towards EMIT.
+
+Authors: David R. Thompson, david.r.thompson@jpl.nasa.gov,
+         Philip G. Brodrick, philip.brodrick@jpl.nasa.gov
+"""
 
 import os
 import argparse
+from osgeo import gdal
 import numpy as np
 from spectral.io import envi
 from isofit.core.sunposition import sunpos
@@ -10,6 +15,8 @@ from isofit.core.common import resample_spectrum
 from datetime import datetime
 from scipy.ndimage.morphology import distance_transform_edt
 from emit_utils.file_checks import envi_header
+import ray
+import multiprocessing
 
 
 def haversine_distance(lon1, lat1, lon2, lat2, radius=6335439):
@@ -36,113 +43,8 @@ def haversine_distance(lon1, lat1, lon2, lat2, radius=6335439):
     return d
 
 
-def main():
-
-    parser = argparse.ArgumentParser(description="Remove glint")
-    parser.add_argument('rdnfile', type=str, metavar='RADIANCE')
-    parser.add_argument('locfile', type=str, metavar='LOCATIONS')
-    parser.add_argument('lblfile', type=str, metavar='SUBSET_LABELS')
-    parser.add_argument('statefile', type=str, metavar='STATE_SUBSET')
-    parser.add_argument('irrfile', type=str, metavar='SOLAR_IRRADIANCE')
-    parser.add_argument('rhofile', type=str, metavar='OUTPUT_RHO')
-    parser.add_argument('outfile', type=str, metavar='OUTPUT_MASKS')
-    parser.add_argument('--wavelengths', type=str, default=None)
-    args = parser.parse_args()
-
-    dtypemap = {'4': np.float32, '5': np.float64, '2': np.float16}
-
-    rdnhdrfile = envi_header(args.rdnfile)
-    rdnhdr = envi.read_envi_header(rdnhdrfile)
-    rdnlines = int(rdnhdr['lines'])
-    rdnsamples = int(rdnhdr['samples'])
-    rdnbands = int(rdnhdr['bands'])
-    rdndtype = dtypemap[rdnhdr['data type']]
-    rdnframe = rdnsamples * rdnbands
-
-    lochdrfile = envi_header(args.locfile)
-    lochdr = envi.read_envi_header(lochdrfile)
-    loclines = int(lochdr['lines'])
-    locsamples = int(lochdr['samples'])
-    locbands = int(lochdr['bands'])
-    locintlv = lochdr['interleave']
-    locdtype = dtypemap[lochdr['data type']]
-    locframe = locsamples * 3
-
-    lblhdrfile = envi_header(args.lblfile)
-    lblhdr = envi.read_envi_header(lblhdrfile)
-    lbllines = int(lblhdr['lines'])
-    lblsamples = int(lblhdr['samples'])
-    lblbands = int(lblhdr['bands'])
-    lbldtype = dtypemap[lblhdr['data type']]
-    lblframe = lblsamples
-
-    statehdrfile = envi_header(args.statefile)
-    statehdr = envi.read_envi_header(statehdrfile)
-    statelines = int(statehdr['lines'])
-    statesamples = int(statehdr['samples'])
-    statebands = int(statehdr['bands'])
-    statedtype = dtypemap[statehdr['data type']]
-    stateframe = statesamples * statebands
-
-    # Check file size consistency
-    if loclines != rdnlines or locsamples != rdnsamples:
-        raise ValueError('LOC and input file dimensions do not match.')
-    if lbllines != rdnlines or lblsamples != rdnsamples:
-        raise ValueError('Label and input file dimensions do not match.')
-    if locbands != 3:
-        raise ValueError('LOC file should have three bands.')
-
-    # Get wavelengths and bands
-    if args.wavelengths is not None:
-        c, wl, fwhm = np.loadtxt(args.wavelengths).T
-    else:
-        if not 'wavelength' in rdnhdr:
-            raise IndexError('Could not find wavelength data anywhere')
-        else:
-            wl = np.array([float(f) for f in rdnhdr['wavelength']])
-        if not 'fwhm' in rdnhdr:
-            raise IndexError('Could not find fwhm data anywhere')
-        else:
-            fwhm = np.array([float(f) for f in rdnhdr['fwhm']])
-
-    # Find H2O and AOD elements in state vector
-    aod_bands, h2o_band = [], []
-    for i, name in enumerate(statehdr['band names']):
-        if 'H2O' in name:
-            h2o_band.append(i)
-        elif 'AER' in name:
-            aod_bands.append(i)
-
-    # find pixel size
-    if 'map info' in rdnhdr.keys():
-        pixel_size = float(rdnhdr['map info'][5].strip())
-    else:
-        loc_memmap = envi.open(lochdrfile).open_memmap()
-        center_y = int(loclines/2)
-        center_x = int(locsamples/2)
-        center_pixels = loc_memmap[center_y-1:center_y+1, center_x, :2]
-        pixel_size = haversine_distance(
-            center_pixels[0, 1], center_pixels[0, 0], center_pixels[1, 1], center_pixels[1, 0])
-        del loc_memmap, center_pixels
-
-    # find solar zenith
-    fid = os.path.split(args.rdnfile)[1].split('_')[0]
-    for prefix in ['prm', 'ang', 'emit']:
-        fid = fid.replace(prefix, '')
-    dt = datetime.strptime(fid, '%Y%m%dt%H%M%S')
-    day_of_year = dt.timetuple().tm_yday
-    print(day_of_year, dt)
-
-    # convert from microns to nm
-    if not any(wl > 100):
-        wl = wl*1000.0
-
-    # irradiance
-    irr_wl, irr = np.loadtxt(args.irrfile, comments='#').T
-    irr = irr / 10  # convert to uW cm-2 sr-1 nm-1
-    irr_resamp = resample_spectrum(irr, irr_wl, wl, fwhm)
-    irr_resamp = np.array(irr_resamp, dtype=np.float32)
-
+@ray.remote
+def build_line_masks(start_line: int, stop_line: int, rdnfile: str, locfile: str, lblfile: str, state: np.array, dt: datetime, h2o_band: np.array, aod_bands: np.array, pixel_size: float, outfile: str, wl: np.array, irr: np.array):
     # determine glint bands having negligible water reflectance
     BLUE = np.logical_and(wl > 440, wl < 460)
     NIR = np.logical_and(wl > 950, wl < 1000)
@@ -157,80 +59,179 @@ def main():
     b1380 = np.argmin(abs(wl-1380))
     b1650 = np.argmin(abs(wl-1650))
 
-    maskbands = 8
-    mask = np.zeros((rdnlines, maskbands, rdnsamples), dtype=np.float32)
-    noise = []
+    rdn_ds = envi.open(envi_header(rdnfile)).open_memmap(interleave='bil')
+    loc_ds = envi.open(envi_header(locfile)).open_memmap(interleave='bil')
+    lbl_ds = envi.open(envi_header(lblfile)).open_memmap(interleave='bil')
+
+    return_mask = np.zeros((stop_line - start_line, 8, rdn_ds.shape[2]))
+    for line in range(start_line, stop_line):
+        print(f'{line} / {stop_line - start_line}')
+        loc = loc_ds[line,...].copy().astype(np.float32).T
+        rdn = rdn_ds[line,...].copy().astype(np.float32).T
+        lbl = lbl_ds[line,...].copy().astype(np.float32).T
+        x = np.zeros((rdn.shape[0], state.shape[1]))
+
+        elevation_m = loc[:, 2]
+        latitude = loc[:, 1]
+        longitudeE = loc[:, 0]
+        az, zen, ra, dec, h = sunpos(dt, latitude, longitudeE,
+                                     elevation_m, radians=True).T
+
+        rho = (((rdn * np.pi) / (irr.T)).T / np.cos(zen)).T
+
+        rho[rho[:, 0] < -9990, :] = -9999.0
+        bad = (latitude < -9990).T
+
+        # Cloud threshold from Sandford et al.
+        total = np.array(rho[:, b450] > 0.28, dtype=int) + \
+            np.array(rho[:, b1250] > 0.46, dtype=int) + \
+            np.array(rho[:, b1650] > 0.22, dtype=int)
+
+        maskbands = 8
+        mask = np.zeros((maskbands, rdn.shape[0]))
+        mask[0, :] = total > 2
+
+        # Cirrus Threshold from Gao and Goetz, GRL 20:4, 1993
+        mask[1, :] = np.array(rho[:, b1380] > 0.1, dtype=int)
+
+        # Water threshold as in CORAL
+        mask[2, :] = np.array(rho[:, b1000] < 0.05, dtype=int)
+
+        # Threshold spacecraft parts using their lack of an O2 A Band
+        mask[3, :] = np.array(rho[:, b762]/rho[:, b780] > 0.8, dtype=int)
+
+        for i, j in enumerate(lbl[:, 0]):
+            if j <= 0:
+                x[i, :] = -9999.0
+            else:
+                x[i, :] = state[int(j), :, 0]
+
+        max_cloud_height = 3000.0
+        mask[4, :] = np.tan(zen) * max_cloud_height / pixel_size
+
+        # AOD 550
+        mask[5, :] = x[:, aod_bands].sum(axis=1)
+        aerosol_threshold = 0.4
+
+        mask[6, :] = x[:, h2o_band].T
+
+        mask[7, :] = np.array((mask[0, :] + mask[2, :] +
+                               (mask[3, :] > aerosol_threshold)) > 0, dtype=int)
+        mask[:, bad] = -9999.0
+        return_mask[line - start_line,...] = mask.copy()
+
+    return return_mask, start_line, stop_line
+
+
+def main():
+
+    parser = argparse.ArgumentParser(description="Remove glint")
+    parser.add_argument('rdnfile', type=str, metavar='RADIANCE')
+    parser.add_argument('locfile', type=str, metavar='LOCATIONS')
+    parser.add_argument('lblfile', type=str, metavar='SUBSET_LABELS')
+    parser.add_argument('statefile', type=str, metavar='STATE_SUBSET')
+    parser.add_argument('irrfile', type=str, metavar='SOLAR_IRRADIANCE')
+    parser.add_argument('outfile', type=str, metavar='OUTPUT_MASKS')
+    parser.add_argument('--wavelengths', type=str, default=None)
+    parser.add_argument('--n_cores', type=int, default=-1)
+    args = parser.parse_args()
+
+    rdn_hdr = envi.read_envi_header(envi_header(args.rdnfile))
+    state_hdr = envi.read_envi_header(envi_header(args.statefile))
+    rdn_shp = envi.open(envi_header(args.rdnfile)).open_memmap(interleave='bil').shape
+    lbl_shp = envi.open(envi_header(args.lblfile)).open_memmap(interleave='bil').shape
+    loc_shp = envi.open(envi_header(args.locfile)).open_memmap(interleave='bil').shape
+
+    # Check file size consistency
+    if loc_shp[0] != rdn_shp[0] or loc_shp[2] != rdn_shp[2]:
+        raise ValueError('LOC and input file dimensions do not match.')
+    if lbl_shp[0] != rdn_shp[0] or lbl_shp[2] != rdn_shp[2]:
+        raise ValueError('Label and input file dimensions do not match.')
+    if loc_shp[1] != 3:
+        raise ValueError('LOC file should have three bands.')
+
+    # Get wavelengths and bands
+    if args.wavelengths is not None:
+        c, wl, fwhm = np.loadtxt(args.wavelengths).T
+    else:
+        if not 'wavelength' in envi_header(args.rdnfile):
+            raise IndexError('Could not find wavelength data anywhere')
+        else:
+            wl = np.array([float(f) for f in rdn_hdr['wavelength']])
+        if not 'fwhm' in rdn_hdr:
+            raise IndexError('Could not find fwhm data anywhere')
+        else:
+            fwhm = np.array([float(f) for f in rdn_hdr['fwhm']])
+
+    # Find H2O and AOD elements in state vector
+    aod_bands, h2o_band = [], []
+    for i, name in enumerate(state_hdr['band names']):
+        if 'H2O' in name:
+            h2o_band.append(i)
+        elif 'AER' in name:
+            aod_bands.append(i)
+
+    # find pixel size
+    if 'map info' in rdn_hdr.keys():
+        pixel_size = float(rdn_hdr['map info'][5].strip())
+    else:
+        loc_memmap = envi.open(envi_header(args.locfile)).open_memmap(interleave='bip')
+        center_y = int(loc_shp[0]/2)
+        center_x = int(loc_shp[2]/2)
+        center_pixels = loc_memmap[center_y-1:center_y+1, center_x, :2]
+        pixel_size = haversine_distance(
+            center_pixels[0, 1], center_pixels[0, 0], center_pixels[1, 1], center_pixels[1, 0])
+        del loc_memmap, center_pixels
+
+    # find solar zenith
+    fid = os.path.split(args.rdnfile)[1].split('_')[0]
+    for prefix in ['prm', 'ang', 'emit']:
+        fid = fid.replace(prefix, '')
     dt = datetime.strptime(fid, '%Y%m%dt%H%M%S')
 
-    with open(args.statefile, 'rb') as fstate:
-        statesize = statelines * statesamples * statebands
-        state = np.fromfile(fstate, dtype=statedtype, count=statesize)
-        state = state.reshape((statelines, statebands, statesamples))
+    day_of_year = dt.timetuple().tm_yday
+    print(day_of_year, dt)
 
-    with open(args.rdnfile, 'rb') as frdn:
-        with open(args.locfile, 'rb') as floc:
-            with open(args.lblfile, 'rb') as flbl:
-                with open(args.rhofile, 'wb') as frho:
-                    for line in range(rdnlines):
+    # convert from microns to nm
+    if not any(wl > 100):
+        wl = wl*1000.0
 
-                        print('line %i/%i' % (line+1, rdnlines))
-                        loc = np.fromfile(floc, dtype=locdtype, count=locframe)
-                        if locintlv == 'bip':
-                            loc = np.array(loc.reshape((locsamples, locbands)), dtype=np.float32)
-                        else:
-                            loc = np.array(loc.reshape((locbands, locsamples)).T, dtype=np.float32)
-                        rdn = np.fromfile(frdn, dtype=rdndtype, count=rdnframe)
-                        rdn = np.array(rdn.reshape((rdnbands, rdnsamples)).T, dtype=np.float32)
-                        lbl = np.fromfile(flbl, dtype=lbldtype, count=lblframe)
-                        lbl = np.array(lbl.reshape((1, lblsamples)).T, dtype=np.float32)
-                        x = np.zeros((rdnsamples, statebands))
+    # irradiance
+    irr_wl, irr = np.loadtxt(args.irrfile, comments='#').T
+    irr = irr / 10  # convert to uW cm-2 sr-1 nm-1
+    irr_resamp = resample_spectrum(irr, irr_wl, wl, fwhm)
+    irr_resamp = np.array(irr_resamp, dtype=np.float32)
 
-                        elevation_m = loc[:, 2]
-                        latitude = loc[:, 1]
-                        longitudeE = loc[:, 0]
-                        az, zen, ra, dec, h = sunpos(dt, latitude, longitudeE,
-                                                     elevation_m, radians=True).T
+    rdn_dataset = gdal.Open(args.rdnfile, gdal.GA_ReadOnly)
+    maskbands = 8
 
-                        rho = (((rdn * np.pi) / (irr_resamp.T)).T / np.cos(zen)).T
+    # Build output dataset
+    driver = gdal.GetDriverByName('ENVI')
+    driver.Register()
 
-                        rho[rho[:, 0] < -9990, :] = -9999.0
-                        rho_bil = np.array(rho.T, dtype=np.float32)
-                        frho.write(rho_bil.tobytes())
-                        bad = (latitude < -9990).T
+    outDataset = driver.Create(args.outfile, rdn_shp[2], rdn_shp[0], maskbands, gdal.GDT_Float32, options=['INTERLEAVE=BIL'])
+    outDataset.SetProjection(rdn_dataset.GetProjection())
+    outDataset.SetGeoTransform(rdn_dataset.GetGeoTransform())
+    del outDataset
 
-                        # Cloud threshold from Sandford et al.
-                        total = np.array(rho[:, b450] > 0.28, dtype=int) + \
-                            np.array(rho[:, b1250] > 0.46, dtype=int) + \
-                            np.array(rho[:, b1650] > 0.22, dtype=int)
-                        mask[line, 0, :] = total > 2
+    rayargs = {'local_mode': args.n_cores == 1}
+    if args.n_cores <= 0:
+        args.n_cores = multiprocessing.cpu_count()
+    rayargs['num_cpus'] = args.n_cores
+    ray.init(**rayargs)
 
-                        # Cirrus Threshold from Gao and Goetz, GRL 20:4, 1993
-                        mask[line, 1, :] = np.array(rho[:, b1380] > 0.1, dtype=int)
+    linebreaks = np.linspace(0, rdn_shp[0], num=args.n_cores*3).astype(int)
 
-                        # Water threshold as in CORAL
-                        mask[line, 2, :] = np.array(rho[:, b1000] < 0.05, dtype=int)
+    state = envi.open(envi_header(args.statefile)).open_memmap(interleave='bil').copy()
+    stateid = ray.put(state)
+    irrid = ray.put(irr_resamp)
+    jobs = [build_line_masks.remote(linebreaks[_l], linebreaks[_l+1], args.rdnfile, args.locfile, args.lblfile, stateid, dt, h2o_band, aod_bands, pixel_size, args.outfile, wl, irrid) for _l in range(len(linebreaks)-1)]
+    rreturn = [ray.get(jid) for jid in jobs]
+    ray.shutdown()
 
-                        # Threshold spacecraft parts using their lack of an O2 A Band
-                        mask[line, 3, :] = np.array(rho[:, b762]/rho[:, b780] > 0.8, dtype=int)
-
-                        for i, j in enumerate(lbl[:, 0]):
-                            if j <= 0:
-                                x[i, :] = -9999.0
-                            else:
-                                x[i, :] = state[int(j), :, 0]
-
-                        max_cloud_height = 3000.0
-                        mask[line, 4, :] = np.tan(zen) * max_cloud_height / pixel_size
-
-                        # AOD 550
-                        mask[line, 5, :] = x[:, aod_bands].sum(axis=1)
-                        aerosol_threshold = 0.4
-
-                        mask[line, 6, :] = x[:, h2o_band].T
-
-                        mask[line, 7, :] = np.array((mask[line, 0, :] + mask[line, 2, :] +
-                                                     (mask[line, 3, :] > aerosol_threshold)) > 0, dtype=int)
-                        mask[line, :, bad] = -9999.0
+    mask = np.zeros((rdn_shp[0], maskbands, rdn_shp[2]))
+    for lm, start_line, stop_line in rreturn:
+        mask[start_line:stop_line,...] = lm
 
     bad = np.squeeze(mask[:, 0, :]) < -9990
     good = np.squeeze(mask[:, 0, :]) > -9990
@@ -241,7 +242,7 @@ def main():
     invalid = (np.squeeze(mask[:, 4, :]) >= cloud_distance)
     mask[:, 4, :] = invalid.copy()
 
-    hdr = rdnhdr.copy()
+    hdr = rdn_hdr.copy()
     hdr['bands'] = str(maskbands)
     hdr['band names'] = ['Cloud flag', 'Cirrus flag', 'Water flag',
                          'Spacecraft Flag', 'Dilated Cloud Flag',
