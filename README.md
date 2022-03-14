@@ -17,7 +17,7 @@ The  "surface_v2" subdirectory contains the data files used to generate the EMIT
 python -c "from isofit.utils import surface_model; surface_model('./surface.json')"
 ```
 
-This will create an output .mat file, at the location specified by "output_model_file" in the json configuration file.  This surface model will be passed into subsequent calls to apply_oe (see below) and need only be generated once for general use (though specific investigations may require custom surface models).
+This will create an output .mat file, at the location specified by "output_model_file" in the json configuration file.  This surface model will be passed into subsequent calls to apply_oe (see below) and need only be generated once for general use (though specific investigations may require custom surface models).  Changing the wavelengths.txt file facilitates use with different instruments.
 
 ## Estimating Surface Reflectance and Uncertainty
 
