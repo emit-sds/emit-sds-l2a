@@ -52,11 +52,11 @@ python make_emit_masks.py \
        [INPUT_LOC_FILE]
        [INPUT_LABEL_FILE]
        [INPUT_STATE_SUBS_FILE]
-       [OUTPUT_RHO_FILE]
+       [INPUT_IRR_FILE]
        [OUTPUT_MASK_FILE]
 ```
 
-The [INPUT_LABEL_FILE] and [INPUT_STATE_SUBS_FILE] can be found in the [WORKING_DIRECTORY]/output file noted about with the extensions \_lbl \_subs_state, respectively.  The [OUTPUT_MASK_FILE] is a 7 band output, designating:
+The [INPUT_LABEL_FILE] and [INPUT_STATE_SUBS_FILE] can be found in the [WORKING_DIRECTORY]/output file noted about with the extensions \_lbl \_subs_state, respectively.  An [INPUT_IRR+FILE]can be found in data/kurudz_0.1nm.dat.  The [OUTPUT_MASK_FILE] is a 7 band output, designating:
 
 1) Cloud flag
 2) Cirrus flag
