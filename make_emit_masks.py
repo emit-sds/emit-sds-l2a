@@ -154,7 +154,7 @@ def main():
     if args.wavelengths is not None:
         c, wl, fwhm = np.loadtxt(args.wavelengths).T
     else:
-        if not 'wavelength' in envi_header(args.rdnfile):
+        if not 'wavelength' in rdn_hdr:
             raise IndexError('Could not find wavelength data anywhere')
         else:
             wl = np.array([float(f) for f in rdn_hdr['wavelength']])
