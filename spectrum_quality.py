@@ -54,6 +54,7 @@ def main():
 
   dtypemap = {'4':np.float32, '5':np.float64, '2':np.float16}
 
+  # Get file dimensions
   rflhdrfile = find_header(args.rflfile)
   rflhdr = envi.read_envi_header(rflhdrfile)
   rfllines   = int(rflhdr['lines'])
@@ -63,7 +64,7 @@ def main():
   rfldtype   = dtypemap[rflhdr['data type']]
   rflframe   = rflsamples * rflbands
     
-  # Get wavelengths and bands
+  # Get wavelengths 
   if args.wavelengths is not None: 
     c, wl, fwhm = np.loadtxt(argnp.wavelengths).T
   else:
@@ -76,11 +77,14 @@ def main():
     else:
       fwhm = np.array([float(f) for f in rflhdr['fwhm']])
    
-  # convert from microns to nm
+  # Convert from microns to nm if needed
   if not any(wl>100): 
     wl = wl*1000.0  
       
-  # start and end channels for two water bands and a reference region
+  # Define start and end channels for two water bands  
+  # reference regions outside these features.  The reference
+  # intervals serve to assess the channel-to-channel instrument
+  # noise
   s940,e940 = wl2band(910,wl), wl2band(990,wl)
   s1140,e1140 = wl2band(1090,wl), wl2band(1180,wl) 
   srefA,erefA = wl2band(1010,wl), wl2band(1080,wl)
@@ -92,50 +96,59 @@ def main():
        for line in range(rfllines):
       
           print('line %i/%i'%(line+1,rfllines))
+
+          # Read reflectances and translate the frame to BIP
+          # (a sequential list of spectra)
           rfl = np.fromfile(fin, dtype=rfldtype, count=rflframe)
           if rflintlv == 'bip':
               rfl = np.array(rfl.reshape((rflsamples,rflbands)), dtype=np.float32)
-          else: # bil
+          else: 
               rfl = np.array(rfl.reshape((rflbands,rflsamples)).T, dtype=np.float32)
 
-   
+          # Loop through all spectra 
           for spectrum in rfl:
+
               if any(spectrum<-9990):
                  continue
+
               samples = samples + 1
               if samples % args.sample != 0:
                  continue
 
+              # Get divergence of each spectral interval from the local 
+              # smooth spectrum
               ctm = smooth(spectrum)
               errsA = spectrum[s940:e940] - ctm[s940:e940]
               errsB = spectrum[s1140:e1140] - ctm[s1140:e1140]
               referenceA = spectrum[srefA:erefA] - ctm[srefA:erefA]
               referenceB = spectrum[srefB:erefB] - ctm[srefB:erefB]
 
+              # calcualte the root mean squared error of each interval
               errsA = np.sqrt(np.mean(pow(errsA,2)))
               errsB = np.sqrt(np.mean(pow(errsB,2)))
               referenceA = np.sqrt(np.mean(pow(referenceA,2)))
               referenceB = np.sqrt(np.mean(pow(referenceB,2)))
 
+              # We use the better of two reference regions and two 
+              # water regions for robustness
               errs = min(errsA,errsB)
               reference = min(referenceA,referenceB)
               excess_error = errs/reference
 
+              # Running tally of errors
               errors.append(excess_error)
 
-             #df = len(errsB)-1
-             #p = 1.0 - chi2.cdf(sse, df)
               if args.plot:
                  plt.plot(wl,spectrum)
                  plt.plot(wl,ctm)
                  plt.title(excess_error)
                  plt.show()
+  
+  # Write percentiles
   errors.sort()
   errors = np.array(errors)
-
-  # Write percentiles
   with open(args.outfile,'w') as fout:
-      for pct in [50,90,95,99,99.9]:
+      for pct in [50,95,99.9]:
           fout.write('%8.6f\n'%np.percentile(errors,pct))
 
 if __name__ == "__main__":
