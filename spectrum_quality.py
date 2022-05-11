@@ -1,44 +1,68 @@
-#!/home/dthompson/src/anaconda/bin/python
-# David R Thompson
+"""
+Spectral quality evaluation metrics.
+
+Authors: David R. Thompson, david.r.thompson@jpl.nasa.gov
+"""
 
 import os
-import sys
 import argparse
-from scipy import logical_and as aand
 import numpy as np
-import spectral
 import spectral.io.envi as envi
-from scipy.interpolate import interp1d
-from scipy.stats import chi2
 import pylab as plt
+import logging
 
 
-# Return the header associated with an image file
-def find_header(imgfile):
-  if os.path.exists(imgfile+'.hdr'):
-    return imgfile+'.hdr'
-  ind = imgfile.rfind('.raw')
-  if ind >= 0:
-    return imgfile[0:ind]+'.hdr'
-  ind = imgfile.rfind('.img')
-  if ind >= 0:
-    return imgfile[0:ind]+'.hdr'
-  raise IOError('No header found for file {0}'.format(imgfile));
+def find_header(inputpath:str) -> str:
+  """Return the header associated with an image file
+
+  Args:
+      inputpath (str): input pathname to search for header from
+
+  Returns:
+      str: envi header path
+  """
+  if os.path.splitext(inputpath)[-1] == '.img' or os.path.splitext(inputpath)[-1] == '.dat' or os.path.splitext(inputpath)[-1] == '.raw':
+      # headers could be at either filename.img.hdr or filename.hdr.  Check both, return the one that exists if it
+      # does, if not return the latter (new file creation presumed).
+      hdrfile = os.path.splitext(inputpath)[0] + '.hdr'
+      if os.path.isfile(hdrfile):
+          return hdrfile
+      elif os.path.isfile(inputpath + '.hdr'):
+          return inputpath + '.hdr'
+      return hdrfile
+  elif os.path.splitext(inputpath)[-1] == '.hdr':
+      return inputpath
+  else:
+      return inputpath + '.hdr'
 
 
-# Moving average smoother
-def smooth(x,window_length=3):
-    q=np.r_[x[window_length-1:0:-1],x,x[-1:-window_length:-1]]
-    w=np.ones(window_length,'d')/float(window_length)
-    y=np.convolve(w,q,mode='valid')
-    y= y[int(window_length/2):-int(window_length/2)]
-    return y
+def smooth(x:np.array, window_length:int = 3) -> np.array:
+  """Moving average smoother
+  Args:
+      x (np.array): Input spectrum
+      window_length (int, optional): Window size for smoothing. Defaults to 3.
+
+  Returns:
+      np.array: smoothed spectra
+  """
+  q=np.r_[x[window_length-1:0:-1],x,x[-1:-window_length:-1]]
+  w=np.ones(window_length,'d')/float(window_length)
+  y=np.convolve(w,q,mode='valid')
+  y= y[int(window_length/2):-int(window_length/2)]
+  return y
 
 
-# Translate wavelength to nearest channel index
-def wl2band(w, wl):
-    return np.argmin(abs(wl-w))
+def wl2band(w: float, wl: np.array) -> int:
+  """Translate wavelength to nearest channel index
 
+  Args:
+      w (float): input wavelength to match
+      wl (np.array): reference wavelengths
+
+  Returns:
+      int: closest index of given wavelength
+  """
+  return np.argmin(abs(wl-w))
 
 
 # parse the command line (perform the correction on all command line arguments)
@@ -50,7 +74,15 @@ def main():
   parser.add_argument('--sample', type=int, default=1)
   parser.add_argument('--wavelengths', type=str, metavar='WAVELENGTH', default=None) 
   parser.add_argument('--plot', action='store_true')
+  parser.add_argument('--log_file', type=str, default=None)
+  parser.add_argument('--log_level', type=str, default='INFO')
   args = parser.parse_args()
+
+  if args.log_file is None:
+      logging.basicConfig(format='%(message)s', level=args.log_level)
+  else:
+      logging.basicConfig(format='%(message)s', level=args.log_level, filename=args.log_file)
+
 
   dtypemap = {'4':np.float32, '5':np.float64, '2':np.float16}
 
@@ -66,7 +98,7 @@ def main():
     
   # Get wavelengths 
   if args.wavelengths is not None: 
-    c, wl, fwhm = np.loadtxt(argnp.wavelengths).T
+    c, wl, fwhm = np.loadtxt(args.wavelengths).T
   else:
     if not 'wavelength' in rflhdr:
       raise IndexError('Could not find wavelength data anywhere')
@@ -79,6 +111,7 @@ def main():
    
   # Convert from microns to nm if needed
   if not any(wl>100): 
+    logging.info('Assuming wavelengths provided in microns, converting to nm')
     wl = wl*1000.0  
       
   # Define start and end channels for two water bands  
@@ -95,7 +128,7 @@ def main():
   with open(args.rflfile,'rb') as fin:
        for line in range(rfllines):
       
-          print('line %i/%i'%(line+1,rfllines))
+          logging.debug('line %i/%i'%(line+1,rfllines))
 
           # Read reflectances and translate the frame to BIP
           # (a sequential list of spectra)
