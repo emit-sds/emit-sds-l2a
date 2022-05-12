@@ -49,7 +49,7 @@ def main():
     logging.debug('Creating global attributes')
     makeGlobalAttr(nc_ds, args.rfl_file, args.glt_file)
 
-    nc_ds.title = "EMIT L2A Surface Reflectance 60 m " + version 
+    nc_ds.title = "EMIT L2A Surface Reflectance 60 m " + args.version 
     nc_ds.summary = nc_ds.summary + \
         f"\\n\\nThis file contains L2A estimated surface reflectances \
         and geolocation data. Reflectance estimates are created using an Optimal Estimation technique - see ATBD for  \
