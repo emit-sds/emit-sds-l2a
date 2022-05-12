@@ -24,6 +24,7 @@ def main():
     parser.add_argument('mask_file', type=str, help="EMIT L2A water/cloud mask ENVI file")
     parser.add_argument('loc_file', type=str, help="EMIT L1B location data ENVI file")
     parser.add_argument('glt_file', type=str, help="EMIT L1B glt ENVI file")
+    parser.add_argument('version', type=str, help="3 digit (with leading V) version number")
     parser.add_argument('--ummg_file', type=str, help="Output UMMG filename")
     parser.add_argument('--log_file', type=str, default=None, help="Logging file to write to")
     parser.add_argument('--log_level', type=str, default="INFO", help="Logging level")
@@ -48,7 +49,7 @@ def main():
     logging.debug('Creating global attributes')
     makeGlobalAttr(nc_ds, args.rfl_file, args.glt_file)
 
-    nc_ds.title = "EMIT L2A Surface Reflectance 60 m V001"
+    nc_ds.title = "EMIT L2A Surface Reflectance 60 m " + version 
     nc_ds.summary = nc_ds.summary + \
         f"\\n\\nThis file contains L2A estimated surface reflectances \
         and geolocation data. Reflectance estimates are created using an Optimal Estimation technique - see ATBD for  \
