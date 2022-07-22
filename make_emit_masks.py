@@ -168,7 +168,7 @@ def main():
     for i, name in enumerate(state_hdr['band names']):
         if 'H2O' in name:
             h2o_band.append(i)
-        elif 'AER' in name:
+        elif 'AER' in name or 'AOT' in name or 'AOD' in name:
             aod_bands.append(i)
 
     # find pixel size
