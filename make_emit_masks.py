@@ -118,10 +118,10 @@ def build_line_masks(start_line: int, stop_line: int, rdnfile: str, locfile: str
         mask[6, :] = x[:, h2o_band].T
 
         # Remove water and spacecraft flags if cloud flag is on (mostly cosmetic) 
-        mask[np.array([2,3]), mask[0,:] == 1] = 0
+        mask[2:4, mask[0,:] == 1] = 0
 
         # Combine Cloud, Cirrus, Water, Spacecraft, and Buffer masks
-        mask[7, :] = np.array(( np.sum(mask[1:4,:],axis=0) 
+        mask[7, :] = np.array(( np.sum(mask[1:4,:],axis=0) + 
                                (mask[5, :] > aerosol_threshold)) > 0, dtype=int)
         mask[:, bad] = -9999.0
         return_mask[line - start_line,...] = mask.copy()
@@ -239,7 +239,7 @@ def main():
     for lm, start_line, stop_line in rreturn:
         mask[start_line:stop_line,...] = lm
 
-    bad = np.squeeze(mask[:, 0, :]) < -9990
+    bad = np.squeeze(mask[:, 0, :]) <= -9990
     good = np.squeeze(mask[:, 0, :]) > -9990
 
     cloudinv = np.logical_not(np.squeeze(mask[:, 0, :]))
@@ -247,6 +247,7 @@ def main():
     cloud_distance = distance_transform_edt(cloudinv)
     invalid = (np.squeeze(mask[:, 4, :]) >= cloud_distance)
     mask[:, 4, :] = invalid.copy()
+    mask[:, -1, :][mask[:, 4, :]] = True
 
     hdr = rdn_hdr.copy()
     hdr['bands'] = str(maskbands)
