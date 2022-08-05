@@ -79,8 +79,8 @@ def build_line_masks(start_line: int, stop_line: int, rdnfile: str, locfile: str
 
         rho = (((rdn * np.pi) / (irr.T)).T / np.cos(zen)).T
 
-        rho[rho[:, 0] < -9990, :] = -9999.0
-        bad = (latitude < -9990).T
+        rho[rho[:, 0] <= -9990, :] = -9999.0
+        bad = (latitude <= -9990).T
 
         # Cloud threshold from Sandford et al.
         total = np.array(rho[:, b450] > 0.28, dtype=int) + \
@@ -106,6 +106,7 @@ def build_line_masks(start_line: int, stop_line: int, rdnfile: str, locfile: str
             else:
                 x[i, :] = state[int(j), :, 0]
 
+        # Buffer based on cloud location and zenith angle
         max_cloud_height = 3000.0
         mask[4, :] = np.tan(zen) * max_cloud_height / pixel_size
 
@@ -113,10 +114,15 @@ def build_line_masks(start_line: int, stop_line: int, rdnfile: str, locfile: str
         mask[5, :] = x[:, aod_bands].sum(axis=1)
         aerosol_threshold = 0.4
 
+        # Water Vapor
         mask[6, :] = x[:, h2o_band].T
 
-        mask[7, :] = np.array((mask[0, :] + mask[2, :] +
-                               (mask[3, :] > aerosol_threshold)) > 0, dtype=int)
+        # Remove water and spacecraft flags if cloud flag is on (mostly cosmetic) 
+        mask[np.array([2,3]), mask[0,:] == 1] = 0
+
+        # Combine Cloud, Cirrus, Water, Spacecraft, and Buffer masks
+        mask[7, :] = np.array(( np.sum(mask[1:4,:],axis=0) 
+                               (mask[5, :] > aerosol_threshold)) > 0, dtype=int)
         mask[:, bad] = -9999.0
         return_mask[line - start_line,...] = mask.copy()
 
