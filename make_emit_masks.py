@@ -79,8 +79,8 @@ def build_line_masks(start_line: int, stop_line: int, rdnfile: str, locfile: str
 
         rho = (((rdn * np.pi) / (irr.T)).T / np.cos(zen)).T
 
-        rho[rho[:, 0] < -9990, :] = -9999.0
-        bad = (latitude < -9990).T
+        rho[rho[:, 0] <= -9990, :] = -9999.0
+        bad = (latitude <= -9990).T
 
         # Cloud threshold from Sandford et al.
         total = np.array(rho[:, b450] > 0.28, dtype=int) + \
@@ -111,12 +111,12 @@ def build_line_masks(start_line: int, stop_line: int, rdnfile: str, locfile: str
 
         # AOD 550
         mask[5, :] = x[:, aod_bands].sum(axis=1)
-        aerosol_threshold = 0.4
 
         mask[6, :] = x[:, h2o_band].T
 
-        mask[7, :] = np.array((mask[0, :] + mask[2, :] +
-                               (mask[3, :] > aerosol_threshold)) > 0, dtype=int)
+        # Remove water and spacecraft flagsg if cloud flag is on (mostly cosmetic)
+        mask[2:4, np.logical_or(mask[0,:] == 1, mask[1,:] ==1)] = 0
+
         mask[:, bad] = -9999.0
         return_mask[line - start_line,...] = mask.copy()
 
@@ -134,6 +134,7 @@ def main():
     parser.add_argument('outfile', type=str, metavar='OUTPUT_MASKS')
     parser.add_argument('--wavelengths', type=str, default=None)
     parser.add_argument('--n_cores', type=int, default=-1)
+    parser.add_argument('--aerosol_threshold', type=float, default=0.5)
     args = parser.parse_args()
 
     rdn_hdr = envi.read_envi_header(envi_header(args.rdnfile))
@@ -233,14 +234,19 @@ def main():
     for lm, start_line, stop_line in rreturn:
         mask[start_line:stop_line,...] = lm
 
-    bad = np.squeeze(mask[:, 0, :]) < -9990
+    bad = np.squeeze(mask[:, 0, :]) <= -9990
     good = np.squeeze(mask[:, 0, :]) > -9990
 
-    cloudinv = np.logical_not(np.squeeze(mask[:, 0, :]))
+
+    # Create buffer around clouds (main and cirrus)
+    cloudinv = np.logical_not(np.squeeze(np.logical_or(mask[:, 0, :], mask[:,1,:])))
     cloudinv[bad] = 1
     cloud_distance = distance_transform_edt(cloudinv)
     invalid = (np.squeeze(mask[:, 4, :]) >= cloud_distance)
     mask[:, 4, :] = invalid.copy()
+
+    # Combine Cloud, Cirrus, Water, Spacecraft, and Buffer masks
+    mask[:, 7, :] = np.logical_or(np.sum(mask[:,0:5,:], axis=1) > 0, mask[:,5,:] > args.aerosol_threshold)
 
     hdr = rdn_hdr.copy()
     hdr['bands'] = str(maskbands)
