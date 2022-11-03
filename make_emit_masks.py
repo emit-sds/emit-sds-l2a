@@ -44,7 +44,7 @@ def haversine_distance(lon1, lat1, lon2, lat2, radius=6335439):
 
 
 @ray.remote
-def build_line_masks(start_line: int, stop_line: int, rdnfile: str, locfile: str, lblfile: str, state: np.array, dt: datetime, h2o_band: np.array, aod_bands: np.array, pixel_size: float, outfile: str, wl: np.array, irr: np.array):
+def build_line_masks(start_line: int, stop_line: int, rdnfile: str, locfile: str, atmfile: str, dt: datetime, h2o_band: np.array, aod_bands: np.array, pixel_size: float, outfile: str, wl: np.array, irr: np.array):
     # determine glint bands having negligible water reflectance
     BLUE = np.logical_and(wl > 440, wl < 460)
     NIR = np.logical_and(wl > 950, wl < 1000)
@@ -61,15 +61,14 @@ def build_line_masks(start_line: int, stop_line: int, rdnfile: str, locfile: str
 
     rdn_ds = envi.open(envi_header(rdnfile)).open_memmap(interleave='bil')
     loc_ds = envi.open(envi_header(locfile)).open_memmap(interleave='bil')
-    lbl_ds = envi.open(envi_header(lblfile)).open_memmap(interleave='bil')
+    atm_ds = envi.open(envi_header(atmfile)).open_memmap(interleave='bil')
 
     return_mask = np.zeros((stop_line - start_line, 8, rdn_ds.shape[2]))
     for line in range(start_line, stop_line):
         print(f'{line} / {stop_line - start_line}')
         loc = loc_ds[line,...].copy().astype(np.float32).T
         rdn = rdn_ds[line,...].copy().astype(np.float32).T
-        lbl = lbl_ds[line,...].copy().astype(np.float32).T
-        x = np.zeros((rdn.shape[0], state.shape[1]))
+        atm = atm_ds[line,...].copy().astype(np.float32).T
 
         elevation_m = loc[:, 2]
         latitude = loc[:, 1]
@@ -100,19 +99,13 @@ def build_line_masks(start_line: int, stop_line: int, rdnfile: str, locfile: str
         # Threshold spacecraft parts using their lack of an O2 A Band
         mask[3, :] = np.array(rho[:, b762]/rho[:, b780] > 0.8, dtype=int)
 
-        for i, j in enumerate(lbl[:, 0]):
-            if j <= 0:
-                x[i, :] = -9999.0
-            else:
-                x[i, :] = state[int(j), :, 0]
-
         max_cloud_height = 3000.0
         mask[4, :] = np.tan(zen) * max_cloud_height / pixel_size
 
         # AOD 550
-        mask[5, :] = x[:, aod_bands].sum(axis=1)
+        mask[5, :] = atm[:, aod_bands].sum(axis=1)
 
-        mask[6, :] = x[:, h2o_band].T
+        mask[6, :] = atm[:, h2o_band].T
 
         # Remove water and spacecraft flagsg if cloud flag is on (mostly cosmetic)
         mask[2:4, np.logical_or(mask[0,:] == 1, mask[1,:] ==1)] = 0
@@ -128,8 +121,7 @@ def main():
     parser = argparse.ArgumentParser(description="Remove glint")
     parser.add_argument('rdnfile', type=str, metavar='RADIANCE')
     parser.add_argument('locfile', type=str, metavar='LOCATIONS')
-    parser.add_argument('lblfile', type=str, metavar='SUBSET_LABELS')
-    parser.add_argument('statefile', type=str, metavar='STATE_SUBSET')
+    parser.add_argument('atmfile', type=str, metavar='SUBSET_LABELS')
     parser.add_argument('irrfile', type=str, metavar='SOLAR_IRRADIANCE')
     parser.add_argument('outfile', type=str, metavar='OUTPUT_MASKS')
     parser.add_argument('--wavelengths', type=str, default=None)
@@ -138,15 +130,15 @@ def main():
     args = parser.parse_args()
 
     rdn_hdr = envi.read_envi_header(envi_header(args.rdnfile))
-    state_hdr = envi.read_envi_header(envi_header(args.statefile))
     rdn_shp = envi.open(envi_header(args.rdnfile)).open_memmap(interleave='bil').shape
-    lbl_shp = envi.open(envi_header(args.lblfile)).open_memmap(interleave='bil').shape
+    atm_hdr = envi.read_envi_header(envi_header(args.atmfile))
+    atm_shp = envi.open(envi_header(args.atmfile)).open_memmap(interleave='bil').shape
     loc_shp = envi.open(envi_header(args.locfile)).open_memmap(interleave='bil').shape
 
     # Check file size consistency
     if loc_shp[0] != rdn_shp[0] or loc_shp[2] != rdn_shp[2]:
         raise ValueError('LOC and input file dimensions do not match.')
-    if lbl_shp[0] != rdn_shp[0] or lbl_shp[2] != rdn_shp[2]:
+    if atm_shp[0] != rdn_shp[0] or atm_shp[2] != rdn_shp[2]:
         raise ValueError('Label and input file dimensions do not match.')
     if loc_shp[1] != 3:
         raise ValueError('LOC file should have three bands.')
@@ -166,7 +158,7 @@ def main():
 
     # Find H2O and AOD elements in state vector
     aod_bands, h2o_band = [], []
-    for i, name in enumerate(state_hdr['band names']):
+    for i, name in enumerate(atm_hdr['band names']):
         if 'H2O' in name:
             h2o_band.append(i)
         elif 'AER' in name or 'AOT' in name or 'AOD' in name:
@@ -223,10 +215,8 @@ def main():
 
     linebreaks = np.linspace(0, rdn_shp[0], num=args.n_cores*3).astype(int)
 
-    state = envi.open(envi_header(args.statefile)).open_memmap(interleave='bil').copy()
-    stateid = ray.put(state)
     irrid = ray.put(irr_resamp)
-    jobs = [build_line_masks.remote(linebreaks[_l], linebreaks[_l+1], args.rdnfile, args.locfile, args.lblfile, stateid, dt, h2o_band, aod_bands, pixel_size, args.outfile, wl, irrid) for _l in range(len(linebreaks)-1)]
+    jobs = [build_line_masks.remote(linebreaks[_l], linebreaks[_l+1], args.rdnfile, args.locfile, args.atmfile, dt, h2o_band, aod_bands, pixel_size, args.outfile, wl, irrid) for _l in range(len(linebreaks)-1)]
     rreturn = [ray.get(jid) for jid in jobs]
     ray.shutdown()
 
