@@ -51,11 +51,12 @@ def main():
     logging.debug('Creating global attributes')
     makeGlobalAttr(nc_ds, args.rfl_file, args.glt_file)
 
-    nc_ds.title = "EMIT L2A Surface Reflectance 60 m " + args.version 
+    nc_ds.title = "EMIT L2A Estimated Surface Reflectance 60 m " + args.version
     nc_ds.summary = nc_ds.summary + \
         f"\\n\\nThis file contains L2A estimated surface reflectances \
-        and geolocation data. Reflectance estimates are created using an Optimal Estimation technique - see ATBD for  \
-        details. Reflectance values are reported as fractions (relative to 1). "
+and geolocation data. Reflectance estimates are created using an Optimal Estimation technique - see ATBD for \
+details. Reflectance values are reported as fractions (relative to 1). \
+Geolocation data (latitude, longitude, height) and a lookup table to project the data are also included."
     nc_ds.sync()
 
     logging.debug('Creating dimensions')
@@ -93,11 +94,12 @@ def main():
     logging.debug('Creating global attributes')
     makeGlobalAttr(nc_ds, args.rfl_unc_file, args.glt_file)
 
-    nc_ds.title = "EMIT L2A Surface Reflectance Uncertainty 60 m V001"
+    nc_ds.title = "EMIT L2A Estimated Surface Reflectance Uncertainty 60 m " + args.version
     nc_ds.summary = nc_ds.summary + \
         f"\\n\\nThis file contains L2A estimated surface reflectance uncertainties \
-        and geolocation data. Reflectance uncertainty estimates are created using an Optimal Estimation technique - see ATBD for  \
-        details. Reflectance uncertainty values are reported as fractions (relative to 1). "
+and geolocation data. Reflectance uncertainty estimates are created using an Optimal Estimation technique - see ATBD for \
+details. Reflectance uncertainty values are reported as fractions (relative to 1). \
+Geolocation data (latitude, longitude, height) and a lookup table to project the data are also included."
     nc_ds.sync()
 
     logging.debug('Creating dimensions')
@@ -134,10 +136,12 @@ def main():
     logging.debug('Creating global attributes')
     makeGlobalAttr(nc_ds, args.mask_file, args.glt_file)
 
-    nc_ds.title = "EMIT L2A Masks 60 m V001"
+    nc_ds.title = "EMIT L2A Masks 60 m " + args.version
     nc_ds.summary = nc_ds.summary + \
         f"\\n\\nThis file contains masks for L2A estimated surface reflectances \
-        and geolocation data. Masks account for clouds, cloud shadows (via buffering), spacecraft interference, and poor atmospheric conditions."
+and geolocation data. Masks account for clouds, cloud shadows (via buffering), spacecraft interference, and poor \
+atmospheric conditions. \
+Geolocation data (latitude, longitude, height) and a lookup table to project the data are also included."
     nc_ds.sync()
 
     logging.debug('Creating dimensions')
