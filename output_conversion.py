@@ -10,6 +10,7 @@ from emit_utils.daac_converter import add_variable, makeDims, makeGlobalAttr, ad
 from emit_utils.file_checks import netcdf_ext, envi_header
 from spectral.io import envi
 import logging
+import numpy as np
 
 
 def main():
@@ -67,6 +68,18 @@ Geolocation data (latitude, longitude, height) and a lookup table to project the
                  [float(d) for d in rfl_ds.metadata['wavelength']], {"dimensions": ("bands",)})
     add_variable(nc_ds, "sensor_band_parameters/fwhm", "f4", "Full Width at Half Max", "nm",
                  [float(d) for d in rfl_ds.metadata['fwhm']], {"dimensions": ("bands",)})
+
+    # Handle data pre January, where bbl was not set in ENVI header
+    if 'bbl' not in rfl_ds.metadata['bbl'] or rfl_ds.metadata['bbl'] == '{}':
+        wl = np.array(nc_ds['sensor_band_parameters']['wavelength'])
+        bbl = np.ones(len(wl))
+        bbl[np.logical_and(wl > 1325, wl < 1435)] = 0
+        bbl[np.logical_and(wl > 1770, wl < 1962)] = 0
+    else:
+        bbl = [bool(d) for d in rfl_ds.metadata['bbl']]
+
+    add_variable(nc_ds, "sensor_band_parameters/good_wavelengths", "u1", "Wavelengths where reflectance is useable: 1 = good data, 0 = bad data", "unitless",
+                 bbl, {"dimensions": ("bands",)})
 
     logging.debug('Creating and writing location data')
     add_loc(nc_ds, args.loc_file)
