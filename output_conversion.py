@@ -123,6 +123,8 @@ Geolocation data (latitude, longitude, height) and a lookup table to project the
                  [float(d) for d in rfl_ds.metadata['wavelength']], {"dimensions": ("bands",)})
     add_variable(nc_ds, "sensor_band_parameters/fwhm", "f4", "Full Width at Half Max", "nm",
                  [float(d) for d in rfl_ds.metadata['fwhm']], {"dimensions": ("bands",)})
+    add_variable(nc_ds, "sensor_band_parameters/good_wavelengths", "u1", "Wavelengths where reflectance is useable: 1 = good data, 0 = bad data", "unitless",
+                 bbl, {"dimensions": ("bands",)})
 
     logging.debug('Creating and writing location data')
     add_loc(nc_ds, args.loc_file)
