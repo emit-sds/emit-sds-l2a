@@ -71,7 +71,7 @@ Geolocation data (latitude, longitude, height) and a lookup table to project the
 
     # Handle data pre January, where bbl was not set in ENVI header
     if 'bbl' not in rfl_ds.metadata or rfl_ds.metadata['bbl'] == '{}':
-        wl = np.array(nc_ds['sensor_band_parameters']['wavelength'])
+        wl = np.array(nc_ds['sensor_band_parameters']['wavelengths'])
         bbl = np.ones(len(wl))
         bbl[np.logical_and(wl > 1325, wl < 1435)] = 0
         bbl[np.logical_and(wl > 1770, wl < 1962)] = 0
