@@ -70,7 +70,7 @@ Geolocation data (latitude, longitude, height) and a lookup table to project the
                  [float(d) for d in rfl_ds.metadata['fwhm']], {"dimensions": ("bands",)})
 
     # Handle data pre January, where bbl was not set in ENVI header
-    if 'bbl' not in rfl_ds.metadata['bbl'] or rfl_ds.metadata['bbl'] == '{}':
+    if 'bbl' not in rfl_ds.metadata or rfl_ds.metadata['bbl'] == '{}':
         wl = np.array(nc_ds['sensor_band_parameters']['wavelength'])
         bbl = np.ones(len(wl))
         bbl[np.logical_and(wl > 1325, wl < 1435)] = 0
