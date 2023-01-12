@@ -10,6 +10,7 @@ from emit_utils.daac_converter import add_variable, makeDims, makeGlobalAttr, ad
 from emit_utils.file_checks import netcdf_ext, envi_header
 from spectral.io import envi
 import logging
+import numpy as np
 
 
 def main():
@@ -51,11 +52,12 @@ def main():
     logging.debug('Creating global attributes')
     makeGlobalAttr(nc_ds, args.rfl_file, args.glt_file)
 
-    nc_ds.title = "EMIT L2A Surface Reflectance 60 m " + args.version 
+    nc_ds.title = "EMIT L2A Estimated Surface Reflectance 60 m " + args.version
     nc_ds.summary = nc_ds.summary + \
         f"\\n\\nThis file contains L2A estimated surface reflectances \
-        and geolocation data. Reflectance estimates are created using an Optimal Estimation technique - see ATBD for  \
-        details. Reflectance values are reported as fractions (relative to 1). "
+and geolocation data. Reflectance estimates are created using an Optimal Estimation technique - see ATBD for \
+details. Reflectance values are reported as fractions (relative to 1). \
+Geolocation data (latitude, longitude, height) and a lookup table to project the data are also included."
     nc_ds.sync()
 
     logging.debug('Creating dimensions')
@@ -66,6 +68,18 @@ def main():
                  [float(d) for d in rfl_ds.metadata['wavelength']], {"dimensions": ("bands",)})
     add_variable(nc_ds, "sensor_band_parameters/fwhm", "f4", "Full Width at Half Max", "nm",
                  [float(d) for d in rfl_ds.metadata['fwhm']], {"dimensions": ("bands",)})
+
+    # Handle data pre January, where bbl was not set in ENVI header
+    if 'bbl' not in rfl_ds.metadata or rfl_ds.metadata['bbl'] == '{}':
+        wl = np.array(nc_ds['sensor_band_parameters']['wavelengths'])
+        bbl = np.ones(len(wl))
+        bbl[np.logical_and(wl > 1325, wl < 1435)] = 0
+        bbl[np.logical_and(wl > 1770, wl < 1962)] = 0
+    else:
+        bbl = [bool(d) for d in rfl_ds.metadata['bbl']]
+
+    add_variable(nc_ds, "sensor_band_parameters/good_wavelengths", "u1", "Wavelengths where reflectance is useable: 1 = good data, 0 = bad data", "unitless",
+                 bbl, {"dimensions": ("bands",)})
 
     logging.debug('Creating and writing location data')
     add_loc(nc_ds, args.loc_file)
@@ -93,11 +107,12 @@ def main():
     logging.debug('Creating global attributes')
     makeGlobalAttr(nc_ds, args.rfl_unc_file, args.glt_file)
 
-    nc_ds.title = "EMIT L2A Surface Reflectance Uncertainty 60 m V001"
+    nc_ds.title = "EMIT L2A Estimated Surface Reflectance Uncertainty 60 m " + args.version
     nc_ds.summary = nc_ds.summary + \
         f"\\n\\nThis file contains L2A estimated surface reflectance uncertainties \
-        and geolocation data. Reflectance uncertainty estimates are created using an Optimal Estimation technique - see ATBD for  \
-        details. Reflectance uncertainty values are reported as fractions (relative to 1). "
+and geolocation data. Reflectance uncertainty estimates are created using an Optimal Estimation technique - see ATBD for \
+details. Reflectance uncertainty values are reported as fractions (relative to 1). \
+Geolocation data (latitude, longitude, height) and a lookup table to project the data are also included."
     nc_ds.sync()
 
     logging.debug('Creating dimensions')
@@ -108,6 +123,8 @@ def main():
                  [float(d) for d in rfl_ds.metadata['wavelength']], {"dimensions": ("bands",)})
     add_variable(nc_ds, "sensor_band_parameters/fwhm", "f4", "Full Width at Half Max", "nm",
                  [float(d) for d in rfl_ds.metadata['fwhm']], {"dimensions": ("bands",)})
+    add_variable(nc_ds, "sensor_band_parameters/good_wavelengths", "u1", "Wavelengths where reflectance is useable: 1 = good data, 0 = bad data", "unitless",
+                 bbl, {"dimensions": ("bands",)})
 
     logging.debug('Creating and writing location data')
     add_loc(nc_ds, args.loc_file)
@@ -134,10 +151,12 @@ def main():
     logging.debug('Creating global attributes')
     makeGlobalAttr(nc_ds, args.mask_file, args.glt_file)
 
-    nc_ds.title = "EMIT L2A Masks 60 m V001"
+    nc_ds.title = "EMIT L2A Masks 60 m " + args.version
     nc_ds.summary = nc_ds.summary + \
         f"\\n\\nThis file contains masks for L2A estimated surface reflectances \
-        and geolocation data. Masks account for clouds, cloud shadows (via buffering), spacecraft interference, and poor atmospheric conditions."
+and geolocation data. Masks account for clouds, cloud shadows (via buffering), spacecraft interference, and poor \
+atmospheric conditions. \
+Geolocation data (latitude, longitude, height) and a lookup table to project the data are also included."
     nc_ds.sync()
 
     logging.debug('Creating dimensions')
