@@ -176,7 +176,7 @@ Geolocation data (latitude, longitude, height) and a lookup table to project the
     logging.debug('Write mask data')
     add_variable(nc_ds, 'mask', "f4", "Masks", "unitless", mask_ds.open_memmap(interleave='bip')[...].copy(),
                  {"dimensions":("downtrack", "crosstrack", "bands"), "zlib": True, "complevel": 9})
-    add_variable(nc_ds, 'band_mask', "u8", "Per-Wavelength Mask", "unitless", bandmask_ds.open_memmap(interleave='bip')[...].copy(),
+    add_variable(nc_ds, 'band_mask', "u1", "Per-Wavelength Mask", "unitless", bandmask_ds.open_memmap(interleave='bip')[...].copy(),
                  {"dimensions":("downtrack", "crosstrack", "packed_wavelength_bands"), "zlib": True, "complevel": 9})
     nc_ds.sync()
     nc_ds.close()
