@@ -1,4 +1,6 @@
 """
+This is a new line of text that I'm adding.
+
 Mask generation for imaging spectroscopy, oriented towards EMIT.
 
 Authors: David R. Thompson, david.r.thompson@jpl.nasa.gov,
