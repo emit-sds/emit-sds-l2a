@@ -67,14 +67,12 @@ isofit_template='''{{
                     "lut_names": [
                         "H2OSTR",
                         "GNDALT",
-                        "OBSZEN",
-                        "AOT550"
+                        "OBSZEN"
                     ],
                     "lut_path": "{lut_directory}",
                     "statevector_names": [
                         "H2OSTR",
-                        "GNDALT",
-                        "AOT550"
+                        "GNDALT"
                     ],
                     "template_file": "{modtran_template_file}"
                 }}
@@ -258,16 +256,19 @@ def main(rawargs=None):
     loc = envi.open(envi_header(args.input_loc)).load()
     lon, lat, elevation = loc[:,:,0], loc[:,:,1], loc[:,:,2]
     lat = np.mean(lat)
-    lon = np.mean(lon)
+    lon = -np.mean(lon) # swap to MODTRAN convention
 
     # Make atmospheric grids
 
     alt_min, alt_max = np.min(elevation)/1000.0, np.max(elevation)/1000.0
     alt_avg = (alt_max-alt_min)/2+alt_min
-    alt_grid = np.arange(alt_min, alt_max, 0.2)
+    step = 0.2 
+    alt_max = max(alt_max,alt_min+step)
+    alt_grid = np.arange(alt_min, alt_max+step, step)
     alt_grid = '['+','.join([str(a) for a in alt_grid])+']'
-    h2o_min, h2o_max = 0.2, 3.0
-    h2o_grid = np.arange(h2o_min, h2o_max, 0.2)
+    h2o_min, h2o_max = 0.6, 3.0
+    h2o_max = max(h2o_max,h2o_min+step)
+    h2o_grid = np.arange(h2o_min, h2o_max+step, step)
     h2o_grid = '['+','.join([str(h) for h in h2o_grid])+']'
     h2o_avg = 1.5
  
@@ -363,26 +364,18 @@ def main(rawargs=None):
     use = abs(wl_shift_by_position)>1e-6
     wl_shift_by_position = wl_shift_by_position[use]
     wl_shift = np.median(wl_shift_by_position)
-
-    # Plot the wavelength shift by position
-
-    x = np.where(use)[0]
-    plt.plot(x, wl_shift_by_position, color+'.', markersize=2)
-    poly = np.polyfit(x, wl_shift_by_position, 1)
-    plt.plot(x, np.polyval(poly, x), 'k')
-
-    # Write to file
+    plt.plot(np.where(use)[0],wl_shift_by_position,color+'.',markersize=2)
+    poly = np.polyfit(np.where(use)[0],wl_shift_by_position,1)
+    x = np.arange(len(wl_shift_by_position))
+    plt.plot(x,np.polyval(poly,x),'k')
    
     print(np.median(np.array(wl_shifts), axis=0))
     plt.xlabel('Position')
     plt.ylabel('Wavelength shift (nm)')
-    plt.title(fid)
     plt.grid(True)
     plt.box(False)
     plt.ylim([-1.00,1.00])
     plt.savefig('output/'+fid+'_plot.pdf')
-    np.savetxt('output/'+fid+'_shift_by_position.txt', 
-               np.c_[x,wl_shift_by_position], fmt='%8.6f')
 
 
  
