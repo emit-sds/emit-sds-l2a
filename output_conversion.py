@@ -10,6 +10,7 @@ from emit_utils.daac_converter import add_variable, makeDims, makeGlobalAttr, ad
 from emit_utils.file_checks import netcdf_ext, envi_header
 from spectral.io import envi
 import logging
+import numpy as np
 
 
 def main():
@@ -26,6 +27,7 @@ def main():
     parser.add_argument('loc_file', type=str, help="EMIT L1B location data ENVI file")
     parser.add_argument('glt_file', type=str, help="EMIT L1B glt ENVI file")
     parser.add_argument('version', type=str, help="3 digit (with leading V) version number")
+    parser.add_argument('software_delivery_version', type=str, help="The extended build number at delivery time")
     parser.add_argument('--ummg_file', type=str, help="Output UMMG filename")
     parser.add_argument('--log_file', type=str, default=None, help="Logging file to write to")
     parser.add_argument('--log_level', type=str, default="INFO", help="Logging level")
@@ -49,7 +51,7 @@ def main():
 
     # make global attributes
     logging.debug('Creating global attributes')
-    makeGlobalAttr(nc_ds, args.rfl_file, args.glt_file)
+    makeGlobalAttr(nc_ds, args.rfl_file, args.software_delivery_version, glt_envi_file=args.glt_file)
 
     nc_ds.title = "EMIT L2A Estimated Surface Reflectance 60 m " + args.version
     nc_ds.summary = nc_ds.summary + \
@@ -67,6 +69,18 @@ Geolocation data (latitude, longitude, height) and a lookup table to project the
                  [float(d) for d in rfl_ds.metadata['wavelength']], {"dimensions": ("bands",)})
     add_variable(nc_ds, "sensor_band_parameters/fwhm", "f4", "Full Width at Half Max", "nm",
                  [float(d) for d in rfl_ds.metadata['fwhm']], {"dimensions": ("bands",)})
+
+    # Handle data pre January, where bbl was not set in ENVI header
+    if 'bbl' not in rfl_ds.metadata or rfl_ds.metadata['bbl'] == '{}':
+        wl = np.array(nc_ds['sensor_band_parameters']['wavelengths'])
+        bbl = np.ones(len(wl))
+        bbl[np.logical_and(wl > 1325, wl < 1435)] = 0
+        bbl[np.logical_and(wl > 1770, wl < 1962)] = 0
+    else:
+        bbl = [bool(d) for d in rfl_ds.metadata['bbl']]
+
+    add_variable(nc_ds, "sensor_band_parameters/good_wavelengths", "u1", "Wavelengths where reflectance is useable: 1 = good data, 0 = bad data", "unitless",
+                 bbl, {"dimensions": ("bands",)})
 
     logging.debug('Creating and writing location data')
     add_loc(nc_ds, args.loc_file)
@@ -92,7 +106,7 @@ Geolocation data (latitude, longitude, height) and a lookup table to project the
 
     # make global attributes
     logging.debug('Creating global attributes')
-    makeGlobalAttr(nc_ds, args.rfl_unc_file, args.glt_file)
+    makeGlobalAttr(nc_ds, args.rfl_unc_file, args.software_delivery_version, glt_envi_file=args.glt_file)
 
     nc_ds.title = "EMIT L2A Estimated Surface Reflectance Uncertainty 60 m " + args.version
     nc_ds.summary = nc_ds.summary + \
@@ -110,6 +124,8 @@ Geolocation data (latitude, longitude, height) and a lookup table to project the
                  [float(d) for d in rfl_ds.metadata['wavelength']], {"dimensions": ("bands",)})
     add_variable(nc_ds, "sensor_band_parameters/fwhm", "f4", "Full Width at Half Max", "nm",
                  [float(d) for d in rfl_ds.metadata['fwhm']], {"dimensions": ("bands",)})
+    add_variable(nc_ds, "sensor_band_parameters/good_wavelengths", "u1", "Wavelengths where reflectance is useable: 1 = good data, 0 = bad data", "unitless",
+                 bbl, {"dimensions": ("bands",)})
 
     logging.debug('Creating and writing location data')
     add_loc(nc_ds, args.loc_file)
@@ -134,7 +150,7 @@ Geolocation data (latitude, longitude, height) and a lookup table to project the
 
     # make global attributes
     logging.debug('Creating global attributes')
-    makeGlobalAttr(nc_ds, args.mask_file, args.glt_file)
+    makeGlobalAttr(nc_ds, args.mask_file, args.software_delivery_version, glt_envi_file=args.glt_file)
 
     nc_ds.title = "EMIT L2A Masks 60 m " + args.version
     nc_ds.summary = nc_ds.summary + \
@@ -161,7 +177,7 @@ Geolocation data (latitude, longitude, height) and a lookup table to project the
     logging.debug('Write mask data')
     add_variable(nc_ds, 'mask', "f4", "Masks", "unitless", mask_ds.open_memmap(interleave='bip')[...].copy(),
                  {"dimensions":("downtrack", "crosstrack", "bands"), "zlib": True, "complevel": 9})
-    add_variable(nc_ds, 'band_mask', "u8", "Per-Wavelength Mask", "unitless", bandmask_ds.open_memmap(interleave='bip')[...].copy(),
+    add_variable(nc_ds, 'band_mask', "u1", "Per-Wavelength Mask", "unitless", bandmask_ds.open_memmap(interleave='bip')[...].copy(),
                  {"dimensions":("downtrack", "crosstrack", "packed_wavelength_bands"), "zlib": True, "complevel": 9})
     nc_ds.sync()
     nc_ds.close()
