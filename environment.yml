@@ -2,5 +2,5 @@ channels:
   - conda-forge
 dependencies:
   - gdal=3.10.3
-  - isofit=3.4.1
+  - isofit=3.4.2
   - matplotlib=3.9.2
