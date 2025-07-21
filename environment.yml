@@ -2,5 +2,23 @@ channels:
   - conda-forge
 dependencies:
   - gdal=3.10.3
-  - isofit=3.4.2
   - matplotlib=3.9.2
+  - click=8.2.1
+  - dask=2025.5.1
+  - h5py=3.14.0
+  - netcdf4=1.7.2
+  - numpy=2.3.1
+  - pandas=2.3.1
+  - pyyaml=6.0.2
+  - ray-core=2.46.0
+  - ray-default=2.46.0
+  - scikit-image=0.25.2
+  - scikit-learn=1.7.0
+  - scipy=1.16.0
+  - spectral=0.23.1
+  - utm=0.7.0
+  - xarray=2025.7.1
+  - xxhash=0.8.3
+  - pip=25.1.1
+  - pip:
+    - isofit==3.5.0
