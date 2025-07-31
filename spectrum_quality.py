@@ -74,6 +74,9 @@ def main():
   parser.add_argument('--sample', type=int, default=1)
   parser.add_argument('--wavelengths', type=str, metavar='WAVELENGTH', default=None)
   parser.add_argument('--plot', action='store_true')
+  parser.add_argument('--fit_cloud_slope', action='store_true')
+  parser.add_argument('--uv_err_thresh', default=0.05)
+  parser.add_argument('--uv_slope_thresh', default=0.0003)
   parser.add_argument('--log_file', type=str, default=None)
   parser.add_argument('--log_level', type=str, default='INFO')
   args = parser.parse_args()
@@ -123,8 +126,20 @@ def main():
   srefA,erefA = wl2band(1010,wl), wl2band(1080,wl)
   srefB,erefB = wl2band(780,wl), wl2band(900,wl)
 
+  # cloud band indices and thresholds
+  b450,b1250,b1650 = wl2band(450,wl), wl2band(1250,wl), wl2band(1650,wl)
+  t450 = 0.29
+  t1250 = 0.22
+  t1650 = 0.22
+
+  # intervals used for cloud slopes
+  x = np.where(np.logical_and(wl>450,wl<1000))[0]
+  x2 = np.where(wl<1000)[0]
+  wl_subset = wl[x]
+  wl_subset2 = wl[x2]
+  
   samples = 0
-  errors = []
+  errors, slopes, resids = [],[],[]
   with open(args.rflfile,'rb') as fin:
        for line in range(rfllines):
 
@@ -138,8 +153,14 @@ def main():
           else:
               rfl = np.array(rfl.reshape((rflbands,rflsamples)).T, dtype=np.float32)
 
-          # Loop through all spectra
-          for spectrum in rfl:
+          # Loop through all spectra 
+          for entry in rfl:
+              
+              # handle state vectors
+              if len(entry)>len(wl):
+                spectrum = entry[:len(wl)]
+              else:
+                spectrum = entry
 
               if any(spectrum<-9990):
                  continue
@@ -171,18 +192,62 @@ def main():
               # Running tally of errors
               errors.append(excess_error)
 
-              if args.plot:
+              # Useful for debugging
+              if False:
                  plt.plot(wl,spectrum)
                  plt.plot(wl,ctm)
                  plt.title(excess_error)
                  plt.show()
 
+              # Is this a cloud? 
+              cloud = spectrum[b450] > t450 and spectrum[b1250] > t1250 \
+                      and spectrum[b1650] > t1650
+
+              if cloud and args.fit_cloud_slope:
+
+                # Fit a polynomial to the VIS, evaluate divergence in UV
+                p = np.polyfit(x,spectrum[x],1)
+                slope = p[0]
+                err = np.mean(abs(spectrum[x]/np.polyval(p,x)-1))
+
+                # Only use clouds that are flat in the VIS
+                if (err) < args.uv_err_thresh and abs(slope)<args.uv_slope_thresh:
+                    slopes.append(slope)
+
+                    if args.plot:
+                       plt.plot(wl,spectrum)
+                       plt.plot(wl[x2],np.polyval(p,x2))
+                       plt.title('Error: %8.6f, Slope: %8.6f'%(err,slope))
+                       plt.show()
+                    resid = (spectrum[x2]/np.polyval(p,x2))
+                    resids.append(resid)
+
+  if len(resids)>1:
+      resids = np.median(np.array(resids), axis=0)
+  else:
+      resids = np.array(resids)
+  
   # Write percentiles
   errors.sort()
   errors = np.array(errors)
   with open(args.outfile,'w') as fout:
+
+      # Write spectrum divergence
       for pct in [50,95,99.9]:
           fout.write('%8.6f\n'%np.percentile(errors,pct))
+
+      if len(slopes)>2:
+          fout.write('%i %8.6f\n'%(len(slopes),np.median(slopes)))
+      else:
+          fout.write('nan\n')
+
+      # Write cloud QE estimates
+      if len(resids)>0:
+          for w,r in zip(wl_subset2, resids):
+              fout.write('%8.6f %8.6f\n'%(w,r))
+      else:
+          for w in wl_subset2:
+              fout.write('%8.6f nan\n'%w)
 
 if __name__ == "__main__":
   main()
