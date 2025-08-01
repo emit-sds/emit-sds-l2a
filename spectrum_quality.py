@@ -8,7 +8,7 @@ import os
 import argparse
 import numpy as np
 import spectral.io.envi as envi
-import pylab as plt
+import matplotlib.pyplot as plt
 import logging
 
 
@@ -72,7 +72,7 @@ def main():
   parser.add_argument('rflfile', type=str, metavar='REFLECTANCE')
   parser.add_argument('outfile', type=str, metavar='OUTPUT')
   parser.add_argument('--sample', type=int, default=1)
-  parser.add_argument('--wavelengths', type=str, metavar='WAVELENGTH', default=None) 
+  parser.add_argument('--wavelengths', type=str, metavar='WAVELENGTH', default=None)
   parser.add_argument('--plot', action='store_true')
   parser.add_argument('--fit_cloud_slope', action='store_true')
   parser.add_argument('--uv_err_thresh', default=0.05)
@@ -98,9 +98,9 @@ def main():
   rflintlv   = rflhdr['interleave']
   rfldtype   = dtypemap[rflhdr['data type']]
   rflframe   = rflsamples * rflbands
-    
-  # Get wavelengths 
-  if args.wavelengths is not None: 
+
+  # Get wavelengths
+  if args.wavelengths is not None:
     c, wl, fwhm = np.loadtxt(args.wavelengths).T
   else:
     if not 'wavelength' in rflhdr:
@@ -111,18 +111,18 @@ def main():
       raise IndexError('Could not find fwhm data anywhere')
     else:
       fwhm = np.array([float(f) for f in rflhdr['fwhm']])
-   
+
   # Convert from microns to nm if needed
-  if not any(wl>100): 
+  if not any(wl>100):
     logging.info('Assuming wavelengths provided in microns, converting to nm')
-    wl = wl*1000.0  
-      
-  # Define start and end channels for two water bands  
+    wl = wl*1000.0
+
+  # Define start and end channels for two water bands
   # reference regions outside these features.  The reference
   # intervals serve to assess the channel-to-channel instrument
   # noise
   s940,e940 = wl2band(910,wl), wl2band(990,wl)
-  s1140,e1140 = wl2band(1090,wl), wl2band(1180,wl) 
+  s1140,e1140 = wl2band(1090,wl), wl2band(1180,wl)
   srefA,erefA = wl2band(1010,wl), wl2band(1080,wl)
   srefB,erefB = wl2band(780,wl), wl2band(900,wl)
 
@@ -142,7 +142,7 @@ def main():
   errors, slopes, resids = [],[],[]
   with open(args.rflfile,'rb') as fin:
        for line in range(rfllines):
-      
+
           logging.debug('line %i/%i'%(line+1,rfllines))
 
           # Read reflectances and translate the frame to BIP
@@ -150,7 +150,7 @@ def main():
           rfl = np.fromfile(fin, dtype=rfldtype, count=rflframe)
           if rflintlv == 'bip':
               rfl = np.array(rfl.reshape((rflsamples,rflbands)), dtype=np.float32)
-          else: 
+          else:
               rfl = np.array(rfl.reshape((rflbands,rflsamples)).T, dtype=np.float32)
 
           # Loop through all spectra 
@@ -169,7 +169,7 @@ def main():
               if samples % args.sample != 0:
                  continue
 
-              # Get divergence of each spectral interval from the local 
+              # Get divergence of each spectral interval from the local
               # smooth spectrum
               ctm = smooth(spectrum)
               errsA = spectrum[s940:e940] - ctm[s940:e940]
@@ -183,7 +183,7 @@ def main():
               referenceA = np.sqrt(np.mean(pow(referenceA,2)))
               referenceB = np.sqrt(np.mean(pow(referenceB,2)))
 
-              # We use the better of two reference regions and two 
+              # We use the better of two reference regions and two
               # water regions for robustness
               errs = min(errsA,errsB)
               reference = min(referenceA,referenceB)
@@ -226,8 +226,6 @@ def main():
       resids = np.median(np.array(resids), axis=0)
   else:
       resids = np.array(resids)
-  
-
   
   # Write percentiles
   errors.sort()
