@@ -60,7 +60,7 @@
           [
             "surface_SWIPE"
           ],
-        "n_components": 2,
+        "n_components": 4,
         "windows": [
           {"interval":[300,380], "regularizer":10, "correlation":"decorrelated"},
           {"interval":[380,460], "regularizer":1e-8, "correlation":"EM", "feather-forward": 1e-5},
