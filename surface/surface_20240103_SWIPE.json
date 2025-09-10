@@ -1,5 +1,5 @@
 {
-  "output_model_file": "../surface_20240103.mat",
+  "output_model_file": "../surface_20240103_SWIPE.mat",
   "wavelength_file":   "../wavelengths.txt",
   "normalize":"Euclidean",
   "reference_windows":[[400,1250],[1500,1700],[2100,2450]],
