@@ -58,7 +58,7 @@
       {
         "input_spectrum_files":
           [
-            "SWIPE_no_glint_swir"
+            "surface_SWIPE"
           ],
         "n_components": 2,
         "windows": [
