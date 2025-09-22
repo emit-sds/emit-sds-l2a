@@ -47,7 +47,7 @@
           {"interval":[500,740], "regularizer":1e-4, "correlation":"decorrelated"},
           {"interval":[740,1380], "regularizer":1e-6, "correlation":"EM", "name": "shallow-water"},
           {"interval":[1380,1960], "regularizer":10, "correlation": "decorrelated"},
-          {"interval":[2960,2070], "regularizer":1e-3, "correlation":"EM","name": "co2","feather_forward":2e-3},
+          {"interval":[1960,2070], "regularizer":1e-3, "correlation":"EM","name": "co2","feather_forward":2e-3},
           {"interval":[2070,2470], "regularizer":10, "correlation":"decorrelated"},
           {"interval":[2470,2500], "regularizer":1e-6, "correlation":"EM","isolated": 1, "name": "noise" }
         ]
