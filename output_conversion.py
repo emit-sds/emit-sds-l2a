@@ -19,7 +19,6 @@ def main():
 
     parser.add_argument('rfl_output_filename', type=str, help="Output Reflectance netcdf filename")
     parser.add_argument('rfl_unc_output_filename', type=str, help="Output Reflectance Uncertainty netcdf filename")
-    parser.add_argument('mask_output_filename', type=str, help="Output Mask netcdf filename")
     parser.add_argument('rfl_file', type=str, help="EMIT L2A reflectance ENVI file")
     parser.add_argument('rfl_unc_file', type=str, help="EMIT L2A reflectance uncertainty ENVI file")
     parser.add_argument('state_file', type=str, help="EMIT L2A OE state ENVI file")
@@ -27,7 +26,6 @@ def main():
     parser.add_argument('glt_file', type=str, help="EMIT L1B glt ENVI file")
     parser.add_argument('version', type=str, help="3 digit (with leading V) version number")
     parser.add_argument('software_delivery_version', type=str, help="The extended build number at delivery time")
-    parser.add_argument('--ummg_file', type=str, help="Output UMMG filename")
     parser.add_argument('--log_file', type=str, default=None, help="Logging file to write to")
     parser.add_argument('--log_level', type=str, default="INFO", help="Logging level")
     args = parser.parse_args()
