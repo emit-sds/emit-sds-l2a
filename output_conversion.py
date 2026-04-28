@@ -82,11 +82,21 @@ Geolocation data (latitude, longitude, height) and a lookup table to project the
 
     logging.debug('Creating and writing glt data')
     add_glt(nc_ds, args.glt_file)
-
+    
     logging.debug('Write reflectance data')
     add_variable(nc_ds, 'reflectance', "f4", "Surface Reflectance", "unitless", rfl_ds.open_memmap(interleave='bip')[...].copy(),
                  {"dimensions":("downtrack", "crosstrack", "bands")})
     nc_ds.sync()
+    
+    logging.debug('Creating and writing state data')
+    state_ds = envi.open(envi_header(args.state_file)).open_memmap(interleave='bip')
+    add_variable(nc_ds, "state_variables/aerosol_optical_thickness", "d", "Optical thickness of atmosphere layer due to ambient aerosol particles", 'unitless', state_ds[..., 0].copy(),
+                 {"dimensions": ("downtrack", "crosstrack")})
+    add_variable(nc_ds, "state_variables/water_vapor", "d", "LWE thickness of atmosphere mass content of water vapor", "cm", state_ds[..., 1].copy(),
+                 {"dimensions": ("downtrack", "crosstrack")})
+    nc_ds.sync()
+    
+    
     nc_ds.close()
     del nc_ds
     logging.debug(f'Successfully created {args.rfl_output_filename}')
@@ -130,6 +140,7 @@ Geolocation data (latitude, longitude, height) and a lookup table to project the
                  {"dimensions":("downtrack", "crosstrack", "bands")})
 
     nc_ds.sync()
+
     nc_ds.close()
     del nc_ds
     logging.debug(f'Successfully created {args.rfl_unc_output_filename}')
