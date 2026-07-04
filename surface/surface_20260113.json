@@ -76,13 +76,13 @@
           ],
         "n_components": 1,
         "windows": [
-          {"interval":[300,880], "regularizer":10, "correlation":"EM"},
-          {"interval":[880,1250], "regularizer":1e-6, "correlation":"EM", "name": "nir"},
+          {"interval":[300,880], "regularizer":10, "correlation":"decorrelated"},
+          {"interval":[880,1250], "regularizer":1e-5, "correlation":"EM", "name": "nir"},
           {"interval":[1250,1325], "regularizer":1e-6, "correlation":"EM", "name": "osf"},
           {"interval":[1325,1400], "regularizer":10, "correlation": "decorrelated","name":"deep-water-A"},
-          {"interval":[1400,1820], "regularizer":1e-6, "correlation": "EM","name":"swir1"},
-          {"interval":[1820,1960], "regularizer":10, "correlation": "decorrelated","name":"deep-water-B"},
-          {"interval":[1960,2500], "regularizer":1e-6, "correlation": "EM", "name":"swir2"}
+          {"interval":[1400,1820], "regularizer":1e-4, "correlation": "EM","name":"swir1"},
+          {"interval":[1820,1980], "regularizer":10, "correlation": "decorrelated","name":"deep-water-B"},
+          {"interval":[1980,2600], "regularizer":1e-4, "correlation": "EM", "name":"swir2"}
         ]
       },
       {
