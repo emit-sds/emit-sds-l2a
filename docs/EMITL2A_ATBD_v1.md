@@ -214,11 +214,13 @@ These terms are related to several physical properties in the atmosphere. Of spe
     <img src="img_v1/fig05.png" width="80%%", alt="Figure 5">
 </p>
 
-*Figure 5: (top) Atmospheric gas absorption by wavelength across the EMIT spectral interval.*
+*Figure 5: (top) Atmospheric transmittance by wavelength across the EMIT spectral interval annotated with strong atmospheric absorption features. Black line shows the total transmittance, while colors show the four separated coupled upward-downward direct-diffuse transmittance. (bottom) Atmospheric radiance converted from the transmittance of the top plot. The AC pipeline tracks everything in radiance units rather than transmittance.*
 
 The sRTMnet solution is trained to emulate the MODTRAN 6.0 atmospheric gas absorption model, which uses a "correlated k" approach with absorption coefficients from the HITRAN 2012 line list (Rothman et al., 2012). Following on prior work, we augment the basic configuration with a sulfate-derived set of aerosol optical properties (Thompson et al., 2019b). The sulfate-based properties have been demonstrated to work effectively across many different domains, including arid environments (Thompson et al., 2020). The aerosol model assumes spherical particles, and is described by spectral absorption, extinction, and asymmetry profiles in prior work (See Figure 6, adapted from Thompson et al., 2019c). The inversion retrieves the aerosol optical depth (typically at the reference wavelength 550 nm). This also permits an aggregate AOD estimate for scene flagging. Figure 6 compares our selected aerosol's optical properties to those of other types in the literature. type A is a strongly absorbing aerosol signature derived from soot. Type B is a separate signature based on continental dust absorption and scattering coefficients. Type C is the EMIT aerosol, a small scattering particle based on a sulfate signature.
 
-![Figure 6](img_v1/fig06.png)
+<p align="center">
+    <img src="img_v1/fig06.png" width="50%%", alt="Figure 6">
+</p>
 
 *Figure 6: Aerosol profiles (image and approach adapted from Thompson et al., 2019c), comparing three different aerosol types. Type A is a strongly absorbing aerosol signature derived from soot. Type B is a separate signature based on continental dust absorption and scattering coefficients. Type C is the aerosol used for the EMIT retrievals - a small scattering particle based on a sulfate signature.*
 
