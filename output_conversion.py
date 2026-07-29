@@ -87,12 +87,21 @@ Geolocation data (latitude, longitude, height) and a lookup table to project the
     add_variable(nc_ds, 'reflectance', "f4", "Surface Reflectance", "unitless", rfl_ds.open_memmap(interleave='bip')[...].copy(),
                  {"dimensions":("downtrack", "crosstrack", "bands")})
     nc_ds.sync()
-    
+
     logging.debug('Creating and writing state data')
-    state_ds = envi.open(envi_header(args.state_file)).open_memmap(interleave='bip')
-    add_variable(nc_ds, "state_variables/aerosol_optical_thickness", "d", "Optical thickness of atmosphere layer due to ambient aerosol particles", 'unitless', state_ds[..., 0].copy(),
+    state_obj = envi.open(envi_header(args.state_file))
+    state_ds = state_obj.open_memmap(interleave='bip')
+
+    band_names = [b.strip() for b in state_obj.metadata['band names']]
+    aot_band = band_names.index('AOT550')
+    h2o_band = band_names.index('H2OSTR')
+
+    add_variable(nc_ds, "state_variables/aerosol_optical_thickness", "d", "Optical thickness of atmosphere layer due to ambient aerosol particles", 'unitless', 
+                 state_ds[..., aot_band].copy(),
                  {"dimensions": ("downtrack", "crosstrack")})
-    add_variable(nc_ds, "state_variables/water_vapor", "d", "LWE thickness of atmosphere mass content of water vapor", "cm", state_ds[..., 1].copy(),
+    
+    add_variable(nc_ds, "state_variables/water_vapor", "d", "LWE thickness of atmosphere mass content of water vapor", "cm", 
+                 state_ds[..., h2o_band].copy(),
                  {"dimensions": ("downtrack", "crosstrack")})
     nc_ds.sync()
     
