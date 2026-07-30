@@ -216,7 +216,7 @@ Computationally, calculating atmospheric radiance profiles at run-time for a set
 
 We generate the EMIT global LUT using an updated, and retrained version of the sRTMnet neural network emulator (Brodrick et al., 2021). Broadly, sRTMnet is trained to emulate the MODTRAN 6.0 Radiative Transfer Model (Berk et al., 2016; 2016b). Specifically, sRTMnet accurately emulates the MODTRAN 6.0 atmospheric gas absorption model, which uses a "correlated k" approach with absorption coefficients from the HITRAN 2012 line list (Rothman et al., 2012). Following prior work, we augment the basic configuration with a sulfate-derived set of aerosol optical properties (Thompson et al., 2019b). The sulfate-based properties have been demonstrated to work effectively across many different domains, including arid environments (Thompson et al., 2020). The aerosol model assumes spherical particles, and is described by spectral absorption, extinction, and asymmetry profiles in prior work (See Figure 6, adapted from Thompson et al., 2019c). Figure 6 compares our selected aerosol's optical properties to those of other types in the literature. type A is a strongly absorbing aerosol signature derived from soot. Type B is a separate signature based on continental dust absorption and scattering coefficients. Type C is the EMIT aerosol, a small scattering particle based on a sulfate signature.
 
-Given a specific solar, instrument, surface, and atmospheric state, sRTMnet Version 2 (V2) estimates all six required atmospheric profiles at high (0.1 nm) spectral resolution. The input data for each sRTMnet grid-point prediction is a 6S radiative transfer simulation (Vermote et al., 1997) with input parameters matching the grid-point state, and can be performed rapidly at 2.5 nm spectral resolution. The 6S source code, has been updated by this team to report the six necessary atmospheric profiles for input into sRTMnet V2 (found at: https://github.com/isofit/6S).
+Given a specific solar, instrument, surface, and atmospheric state, sRTMnet Version 2 (V2) estimates all six required atmospheric profiles at high (0.1 nm) spectral resolution. The input data for each sRTMnet grid-point prediction is a 6S radiative transfer simulation (Vermote et al., 1997) with input parameters matching the grid-point state, and can be performed rapidly at 2.5 nm spectral resolution. The 6S source code, has been updated by this team to report the six necessary atmospheric profiles for input into sRTMnet V2 (found at: https://github.com/isofit/6S). The output of the emulator are 0.1 nm spectral resolution vectors for the six atmospheric profiles ($L_{atm}, L_{dir,dir}, L_{dir,dif}, L_{dif,dir}, L_{dif,dif}$, and $S$).
 
 <p align="center">
     <img src="img_v1/fig06.png" width="50%%", alt="Figure 6">
@@ -224,9 +224,21 @@ Given a specific solar, instrument, surface, and atmospheric state, sRTMnet Vers
 
 *Figure 6: Aerosol profiles (image and approach adapted from Thompson et al., 2019c), comparing three different aerosol types. Type A is a strongly absorbing aerosol signature derived from soot. Type B is a separate signature based on continental dust absorption and scattering coefficients. Type C is the aerosol used for the EMIT retrievals - a small scattering particle based on a sulfate signature.*
 
-#### 4.2.2 Model Inversion
+#### 3.3.2 Superpixel Segmentation
 
-Our retrieval algorithm is based on Bayesian Maximum A Posteriori (MAP) inversion of equation 1, using a strategy known colloquially as Optimal Estimation (OE, Rodgers, 2000). This approach has been demonstrated previously in multiple imaging spectrometer field studies (Thompson et al., 2018, 2019b, 2019c). Its advantages include rigorous uncertainty propagation and the ability to estimate atmospheric aerosol constituents in high AOD conditions. The main disadvantage is a high computational cost due to the iterative inversion algorithm, which must run independently on every spectrum. Here, we address this by running the full algorithm on a representative subset of several thousand spectra per scene. These results enable a highly accurate, spatially-local empirical line estimate for the remainder, allowing millions of spectra to be corrected and capturing the benefits of the iterative approach at a feasible computational cost.
+A full per-pixel implementation of the iterative OE retrieval is computationally intractable. Our two-stage estimation is designed in part, to address this computational limitation. In the first stage, we run the full OE retrieval on a representative subset of several thousand spectra per scene, i.e., the "superpixels". We segmentation the full scene into superpixels using an algorithm based on simple linear iterative clustering (SLIC) (Achanta et al., 2012).
+
+First, all spectra in the input radiance file are reduced to a basis of five orthogonal dimensions with principal components analysis. We then segment the shared 5 dimension basis space into regions that are (a) spatially contiguous and (b) contain several hundred pixels of similar radiance properties. Figure 7 illustrates the superpixel segmentation of an EMIT scene (emit20240419t183331). It results in a reduced subset of locally-representative radiances and associated regions. This dataset is typically 2-3 orders of magnitude faster to analyze. Additionally, it significantly reduces noise variance to assist with accurate atmosphere estimation. For each superpixel we take the mean radiance, location, and observation data as the input to the first atmospheric correction stage.
+
+<p align="center">
+    <img src="img_v1/fig07.png" width="80%%", alt="Figure 7">
+</p>
+
+*Figure 7: SLIC segmentation combines contiguous pixels of similar radiance properties into a single local reference area and associated radiance spectrum. (left) Original radiance RGB of Puget Sound. (middle) RGB of SLIC segmented radiance cube with a segmentation size of 40. (right) Blow-up highlight better demonstrating the superpixel scale. Note that superpixels generally follow coastlines and other areas of prominant surface type change.*
+
+#### 3.3.2 Model Inversion
+
+Our retrieval algorithm is based on Bayesian Maximum A Posteriori (MAP) inversion of equation 1, using a strategy known colloquially as Optimal Estimation (OE, Rodgers, 2000). This approach has been demonstrated previously in multiple imaging spectrometer field studies (Thompson et al., 2018, 2019b, 2019c). Its advantages include rigorous uncertainty propagation and the ability to estimate atmospheric aerosol constituents in high AOD conditions. The main disadvantage of OE atmospheric correction in the style of Thompson et al. (2018) is a high computational cost due to the iterative inversion algorithm, which must run independently on every spectrum. Our two-stage estimation is designed in part, to address computational limitations. In the first stage, we run the full OE retrieval on a representative subset of several thousand spectra per scene. These results enable a highly accurate, spatially-local empirical line estimate for the remainder, allowing millions of spectra to be corrected and capturing the benefits of the iterative approach at a feasible computational cost.
 
 The Bayesian Model inversion acts as a local ascent of the posterior probability density for a state vector x consisting of surface and atmosphere parameters (Figure 7). As in Thompson et al. (2018) we initialize the result to a heuristic estimate using a band ratio across water vapor absorption features, and an algebraic inversion of equation (1). Then, an iterative gradient-based Levenberg Marquardt follows the (negative) derivative of the following cost function until converging to a local minimum:
 
@@ -240,23 +252,15 @@ $$\Psi_r = (\mathbf{K}_r^T \Psi_L^{-1} \mathbf{K}_r + \Sigma_r^{-1})^{-1}$$
 
 This yields a reflectance, atmosphere, and uncertainty estimate for each reference spectrum. The final step is an Empirical Line operation (Thompson et al., 2016) that uses the k nearest solutions to extrapolate an exact solution for the high-resolution data.
 
-![Figure 7](img_v1/fig07.png)
+<p align="center">
+    <img src="img_v1/fig07.png" width="50%%", alt="Figure 7">
+</p>
 
 *Figure 7: The Bayesian model inversion begins at an initial guess, and climbs the local gradient of the posterior probability density (equivalently, minimizing the cost function in equation 2). At the time of convergence, this produces a linearized estimate of posterior uncertainty, portrayed here as an ellipsoid.*
 
 ![Figure 8](img_v1/fig08.png)
 
 *Figure 8: (Left) Cuprite, NV scene. (Right) Interpolated OE estimation of a single reflectance spectrum, via the local empirical line solution. Sharp, spectrally-diagnostic Kaolinite features are visible in the 2-2.5 micron range.*
-
-#### 4.2.3 Superpixel Segmentation
-
-Since complete model inversion of every spectrum is computationally intractable, we use a segmentation to identify representative spectra in the flightline where we apply our model inversions. After performing the atmosphere/surface estimation on the representative subset of, we assign the atmospheric estimates to each location associated with that segment. We then use the representative spectra to calculate local "Empirical line" solutions (Moran et al., 2001, Thompson et al., 2016). The empirical line performs the exact atmospheric correction for all independent (non-aggregated) spectra at maximum spatial resolution.
-
-The initial segmentation uses a superpixel aggregation approach based on the SLIC algorithm (Achanta et al., 2012). We reduce all spectra in the file to a basis of five orthogonal dimensions with principal components analysis, and segment the result into regions that are (a) contiguous and (b) contain several hundred pixels of similar radiance properties. Figure 9 illustrates the superpixel segmentation of a scene from NASA's Next Generation Airborne Visible Infrared Imaging Spectrometer (AVIRIS-NG). It results in a reduced subset of locally-representative radiances and associated regions. This dataset is typically 2-3 orders of magnitude faster to analyze. Additionally, it significantly reduces noise variance to assist with accurate atmosphere estimation. Similarly, we take the mean radiance and location of each segment as the input to the following atmospheric correction.
-
-![Figure 9](img_v1/fig09.png)
-
-*Figure 9: SLIC segmentation combines contiguous pixels of similar radiance properties into a single local reference area and associated radiance spectrum.*
 
 #### 4.2.4 Analytical Line extrapolation
 
