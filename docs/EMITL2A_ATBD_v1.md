@@ -8,14 +8,14 @@ ATBD-EMIT-02a
 
 ### Theoretical Basis
 
-David R. Thompson, Philip G. Brodrick, Robert O. Green, Olga Kalashnikova, Sarah Lundeen, Gregory Okin¹, Winston Olson-Duvall, Thomas Painter¹
+David R. Thompson<sup>1</sup>, Philip G. Brodrick<sup>1</sup>, Robert O. Green<sup>1</sup>, Olga Kalashnikova<sup>1</sup>, Sarah Lundeen<sup>1</sup>, Gregory Okin<sup>2</sup>, Winston Olson-Duvall<sup>1</sup>, Thomas Painter<sup>2</sup>
 
-Jet Propulsion Laboratory, California Institute of Technology
+<sup>1</sup> Jet Propulsion Laboratory, California Institute of Technology
 
-¹ University of California, Los Angeles
+<sup>2</sup> University of California, Los Angeles
 
-Version 1.5
-September 2024
+Version 2.0
+July 2026
 
 Jet Propulsion Laboratory
 California Institute of Technology
@@ -42,30 +42,30 @@ Pasadena, California 91109-8099
 | 1.3 | Dec. 15, 2020 | Cirrus Mask |
 | 1.4 | Jan 31, 2022 | sRTMNet |
 | 1.5 | September, 2024 | Analytical Line |
+| 2.0 | September, 2026 |  |
 
 ---
 
 ## Table of Contents
 
 1. [Key Team Members](#1-key-team-members)
-2. [Historical Context and Background on the EMIT Mission and its Instrumentation](#2-historical-context-and-background-on-the-emit-mission-and-its-instrumentation)
-3. [Algorithm Rationale and Prior Validation](#3-algorithm-rationale-and-prior-validation)
-4. [Algorithm Description](#4-algorithm-description)
-   - 4.1 [Input data](#41-input-data)
-   - 4.2 [Theoretical description](#42-theoretical-description)
-     - 4.2.1 [Radiative Transfer and Atmospheric Modeling](#421-radiative-transfer-and-atmospheric-modeling)
-     - 4.2.2 [Model Inversion](#422-model-inversion)
-     - 4.2.3 [Superpixel Segmentation](#423-superpixel-segmentation)
-     - 4.2.4 [Analytical Line extrapolation](#424-analytical-line-extrapolation)
-     - 4.2.5 [Cloud Masking](#425-cloud-masking)
-     - 4.2.6 [Other Masks](#426-other-masks)
-   - 4.3 [Practical Considerations](#43-practical-considerations)
-5. [Output Data](#5-output-data)
-6. [Calibration, Validation, and Field Measurement](#6-calibration-validation-and-field-measurement)
-7. [Constraints and Limitations](#7-constraints-and-limitations)
-8. [Code Repository and References](#8-code-repository-and-references)
-   - 8.1 [Repository](#81-repository)
-   - 8.2 [References](#82-references)
+2. [The EMIT Mission and its Instrumentation](#2-the-emit-mission-and-its-instrumentation)
+3. [EMIT Level 2A Algorithm](#3-emit-level2a-algorithm)
+   - 3.1 [Introduction](#31-introduction)
+   - 3.2 [Input data](#32-input-data)
+   - 3.3 [The atmospheric correction algorithm](#33-the-atmospheric-correction-algorithm)
+     - 3.3.1 [Radiative Transfer and Atmospheric Modeling](#421-radiative-transfer-and-atmospheric-modeling)
+     - 3.3.2 [Superpixel Segmentation](#332-superpixel-segmentation)
+     - 3.3.3 [OE Model Inversion](#333-oe-model-inversion)
+     - 3.3.4 [Analytical Line extrapolation](#334-analytical-line-extrapolation)
+     - 3.3.5 [Other Masks](#335-other-masks)
+   - 3.4 [Practical Considerations](#43-practical-considerations)
+4. [Output Data](#5-output-data)
+5. [Calibration, Validation, and Field Measurement](#5-calibration-validation-and-field-measurement)
+6. [Constraints and Limitations](#6-constraints-and-limitations)
+7. [Code Repository and References](#7-code-repository-and-references)
+   - 7.1 [Repository](#71-repository)
+   - 7.2 [References](#72-references)
 
 ---
 
@@ -226,19 +226,19 @@ Given a specific solar, instrument, surface, and atmospheric state, sRTMnet Vers
 
 #### 3.3.2 Superpixel Segmentation
 
-A full per-pixel implementation of the iterative OE retrieval is computationally intractable. Our two-stage estimation is designed in part, to address this computational limitation. In the first stage, we run the full OE retrieval on a representative subset of several thousand spectra per scene, i.e., the "superpixels". We segmentation the full scene into superpixels using an algorithm based on simple linear iterative clustering (SLIC) (Achanta et al., 2012).
+A full per-pixel implementation of the iterative OE retrieval is computationally intractable. Our two-stage estimation is designed in part, to address this computational limitation. In the first stage, we run the full OE retrieval on a representative subset of several thousand spectra per scene, i.e., the "superpixels". We segment the full scene into superpixels using an algorithm based on simple linear iterative clustering (SLIC) (Achanta et al., 2012).
 
-First, all spectra in the input radiance file are reduced to a basis of five orthogonal dimensions with principal components analysis. We then segment the shared 5 dimension basis space into regions that are (a) spatially contiguous and (b) contain several hundred pixels of similar radiance properties. Figure 7 illustrates the superpixel segmentation of an EMIT scene (emit20240419t183331). It results in a reduced subset of locally-representative radiances and associated regions. This dataset is typically 2-3 orders of magnitude faster to analyze. Additionally, it significantly reduces noise variance to assist with accurate atmosphere estimation. For each superpixel we take the mean radiance, location, and observation data as the input to the first atmospheric correction stage.
+First, all spectra in the input radiance file are reduced to a basis of five orthogonal dimensions with principal components analysis. We then segment the 5 dimension basis space into regions that are (a) spatially contiguous and (b) contain several hundred pixels of similar radiance properties. Figure 7 illustrates the superpixel segmentation of an EMIT scene (emit20240419t183331). It results in a reduced subset of locally-representative radiances and associated regions. This dataset is typically 2-3 orders of magnitude faster to analyze. Additionally, it significantly reduces noise variance to assist with accurate atmosphere estimation. For each superpixel we take the mean radiance, location, and observation data as the input to the first atmospheric correction stage.
 
 <p align="center">
-    <img src="img_v1/fig07.png" width="80%%", alt="Figure 7">
+    <img src="img_v1/fig07.png" width="85%%", alt="Figure 7">
 </p>
 
 *Figure 7: SLIC segmentation combines contiguous pixels of similar radiance properties into a single local reference area and associated radiance spectrum. (left) Original radiance RGB of Puget Sound. (middle) RGB of SLIC segmented radiance cube with a segmentation size of 40. (right) Blow-up highlight better demonstrating the superpixel scale. Note that superpixels generally follow coastlines and other areas of prominant surface type change.*
 
-#### 3.3.2 Model Inversion
+#### 3.3.3 OE Model Inversion
 
-Our retrieval algorithm is based on Bayesian Maximum A Posteriori (MAP) inversion of equation 1, using a strategy known colloquially as Optimal Estimation (OE, Rodgers, 2000). This approach has been demonstrated previously in multiple imaging spectrometer field studies (Thompson et al., 2018, 2019b, 2019c). Its advantages include rigorous uncertainty propagation and the ability to estimate atmospheric aerosol constituents in high AOD conditions. The main disadvantage of OE atmospheric correction in the style of Thompson et al. (2018) is a high computational cost due to the iterative inversion algorithm, which must run independently on every spectrum. Our two-stage estimation is designed in part, to address computational limitations. In the first stage, we run the full OE retrieval on a representative subset of several thousand spectra per scene. These results enable a highly accurate, spatially-local empirical line estimate for the remainder, allowing millions of spectra to be corrected and capturing the benefits of the iterative approach at a feasible computational cost.
+Our retrieval algorithm is based on Bayesian Maximum A Posteriori (MAP) inversion of equation 1, using a strategy known colloquially as Optimal Estimation (OE, Rodgers, 2000). This approach has been demonstrated previously in multiple imaging spectrometer field studies (Thompson et al., 2018, 2019b, 2019c). Its advantages include rigorous uncertainty propagation and the ability to estimate atmospheric aerosol constituents in high AOD conditions. The main disadvantage of OE atmospheric correction in the style of Thompson et al. (2018) is the high computational cost due to the iterative inversion algorithm, which must run independently on every spectrum. Our two-stage estimation is designed in part, to address computational limitations. In the first stage, we run the full OE retrieval on a representative subset of several thousand spectra per scene. These results enable a highly accurate, spatially-local empirical line estimate for the remainder, allowing millions of spectra to be corrected and capturing the benefits of the iterative approach at a feasible computational cost.
 
 The Bayesian Model inversion acts as a local ascent of the posterior probability density for a state vector x consisting of surface and atmosphere parameters (Figure 7). As in Thompson et al. (2018) we initialize the result to a heuristic estimate using a band ratio across water vapor absorption features, and an algebraic inversion of equation (1). Then, an iterative gradient-based Levenberg Marquardt follows the (negative) derivative of the following cost function until converging to a local minimum:
 
@@ -253,16 +253,16 @@ $$\Psi_r = (\mathbf{K}_r^T \Psi_L^{-1} \mathbf{K}_r + \Sigma_r^{-1})^{-1}$$
 This yields a reflectance, atmosphere, and uncertainty estimate for each reference spectrum. The final step is an Empirical Line operation (Thompson et al., 2016) that uses the k nearest solutions to extrapolate an exact solution for the high-resolution data.
 
 <p align="center">
-    <img src="img_v1/fig07.png" width="50%%", alt="Figure 7">
+    <img src="img_v1/fig08.png" width="60%%", alt="Figure 8">
 </p>
 
 *Figure 7: The Bayesian model inversion begins at an initial guess, and climbs the local gradient of the posterior probability density (equivalently, minimizing the cost function in equation 2). At the time of convergence, this produces a linearized estimate of posterior uncertainty, portrayed here as an ellipsoid.*
 
-![Figure 8](img_v1/fig08.png)
+![Figure 8](img_v1/fig09.png)
 
 *Figure 8: (Left) Cuprite, NV scene. (Right) Interpolated OE estimation of a single reflectance spectrum, via the local empirical line solution. Sharp, spectrally-diagnostic Kaolinite features are visible in the 2-2.5 micron range.*
 
-#### 4.2.4 Analytical Line extrapolation
+#### 3.3.4 Analytical Line extrapolation
 
 To get from superpixel to individual inversions, we first extrapolate the solved atmospheric field using a local linear model with small amounts of (spatial) gaussian smoothing. This crudely approximates a Gaussian Process Regression for atmospheric extrapolation (as in Eckert et al., 2024), in a robust and computationally efficient manner. The extrapolated atmosphere is then used in an iterative approach to solve for the surface reflectance. Functionally, this iteration converges in a single step. The process is shown in detail in the utility function https://github.com/isofit/isofit/blob/dev/isofit/utils/analytical_line.py.
 
