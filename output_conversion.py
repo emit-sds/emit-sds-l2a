@@ -139,7 +139,7 @@ Geolocation data (latitude, longitude, height) and a lookup table to project the
     logging.debug('Creating dimensions')
     makeDims(nc_ds, args.rfl_unc_file, args.glt_file)
 
-    logging.debug('Creating and writing reflectance metadata')
+    logging.debug('Creating and writing reflectance uncertainty metadata')
     add_variable(nc_ds, "sensor_band_parameters/wavelengths", "f4", "Wavelength Centers", "nm",
                  [float(d) for d in rfl_ds.metadata['wavelength']], {"dimensions": ("bands",)},
                  standard_name = "radiation_wavelength")
