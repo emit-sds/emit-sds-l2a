@@ -7,7 +7,7 @@ Authors: Philip G. Brodrick, philip.brodrick@jpl.nasa.gov
 import argparse
 from netCDF4 import Dataset
 from emit_utils.daac_converter import add_variable, makeDims, makeGlobalAttr, add_loc, add_glt
-from emit_utils.file_checks import netcdf_ext, envi_header
+from emit_utils.file_checks import envi_header
 from spectral.io import envi
 import logging
 import numpy as np
@@ -54,6 +54,7 @@ def main():
 and geolocation data. Reflectance estimates are created using an Optimal Estimation technique - see ATBD for \
 details. Reflectance values are reported as fractions (relative to 1). \
 Geolocation data (latitude, longitude, height) and a lookup table to project the data are also included."
+
     nc_ds.sync()
 
     logging.debug('Creating dimensions')
@@ -61,7 +62,8 @@ Geolocation data (latitude, longitude, height) and a lookup table to project the
 
     logging.debug('Creating and writing reflectance metadata')
     add_variable(nc_ds, "sensor_band_parameters/wavelengths", "f4", "Wavelength Centers", "nm",
-                 [float(d) for d in rfl_ds.metadata['wavelength']], {"dimensions": ("bands",)})
+                 [float(d) for d in rfl_ds.metadata['wavelength']], {"dimensions": ("bands",)},
+                 standard_name = "radiation_wavelength")
     add_variable(nc_ds, "sensor_band_parameters/fwhm", "f4", "Full Width at Half Max", "nm",
                  [float(d) for d in rfl_ds.metadata['fwhm']], {"dimensions": ("bands",)})
 
@@ -84,8 +86,10 @@ Geolocation data (latitude, longitude, height) and a lookup table to project the
     add_glt(nc_ds, args.glt_file)
     
     logging.debug('Write reflectance data')
-    add_variable(nc_ds, 'reflectance', "f4", "Surface Reflectance", "unitless", rfl_ds.open_memmap(interleave='bip')[...].copy(),
-                 {"dimensions":("downtrack", "crosstrack", "bands")})
+    add_variable(nc_ds, 'reflectance', "f4", "Hemispherical-Directional Reflectance Factor", "unitless", 
+                 rfl_ds.open_memmap(interleave='bip')[...].copy(),
+                 {"dimensions":("downtrack", "crosstrack", "bands")},
+                 standard_name = "surface_bidirectional_reflectance")
     nc_ds.sync()
 
     logging.debug('Creating and writing state data')
@@ -96,13 +100,17 @@ Geolocation data (latitude, longitude, height) and a lookup table to project the
     aot_band = band_names.index('AOT550')
     h2o_band = band_names.index('H2OSTR')
 
-    add_variable(nc_ds, "state_variables/aerosol_optical_thickness", "d", "Optical thickness of atmosphere layer due to ambient aerosol particles", 'unitless', 
+    add_variable(nc_ds, "state_variables/aerosol_optical_thickness", "d", 
+                 "Optical thickness of atmosphere layer due to ambient aerosol particles at 550 nm", 'unitless', 
                  state_ds[..., aot_band].copy(),
-                 {"dimensions": ("downtrack", "crosstrack")})
+                 {"dimensions": ("downtrack", "crosstrack")},
+                 standard_name = "atmosphere_absorption_optical_thickness_due_to_ambient_aerosol_particles")
     
-    add_variable(nc_ds, "state_variables/water_vapor", "d", "LWE thickness of atmosphere mass content of water vapor", "cm", 
+    add_variable(nc_ds, "state_variables/water_vapor", "d", 
+                 "Atmospheric mass content of water vapor", "g/cm^2", 
                  state_ds[..., h2o_band].copy(),
-                 {"dimensions": ("downtrack", "crosstrack")})
+                 {"dimensions": ("downtrack", "crosstrack")},
+                 standard_name = "atmosphere_mass_content_of_water_vapor")
     nc_ds.sync()
     
     
@@ -131,9 +139,10 @@ Geolocation data (latitude, longitude, height) and a lookup table to project the
     logging.debug('Creating dimensions')
     makeDims(nc_ds, args.rfl_unc_file, args.glt_file)
 
-    logging.debug('Creating and writing reflectance metadata')
+    logging.debug('Creating and writing reflectance uncertainty metadata')
     add_variable(nc_ds, "sensor_band_parameters/wavelengths", "f4", "Wavelength Centers", "nm",
-                 [float(d) for d in rfl_ds.metadata['wavelength']], {"dimensions": ("bands",)})
+                 [float(d) for d in rfl_ds.metadata['wavelength']], {"dimensions": ("bands",)},
+                 standard_name = "radiation_wavelength")
     add_variable(nc_ds, "sensor_band_parameters/fwhm", "f4", "Full Width at Half Max", "nm",
                  [float(d) for d in rfl_ds.metadata['fwhm']], {"dimensions": ("bands",)})
     add_variable(nc_ds, "sensor_band_parameters/good_wavelengths", "u1", "Wavelengths where reflectance is useable: 1 = good data, 0 = bad data", "unitless",
@@ -144,7 +153,7 @@ Geolocation data (latitude, longitude, height) and a lookup table to project the
     logging.debug('Creating and writing glt data')
     add_glt(nc_ds, args.glt_file)
 
-    add_variable(nc_ds, 'reflectance_uncertainty', "f4", "Surface Reflectance Uncertainty", "unitless",
+    add_variable(nc_ds, 'reflectance_uncertainty', "f4", "Hemispherical-Directional Reflectance Factor Uncertainty", "unitless",
                  rfl_unc_ds.open_memmap(interleave='bip')[...].copy(),
                  {"dimensions":("downtrack", "crosstrack", "bands")})
 
