@@ -112,13 +112,13 @@ The EMIT instrument is a Dyson imaging spectrometer that will resolve the distin
 The EMIT Project is part of the Earth Venture-Instrument (EV-I) Program directed by the Program Director of the NASA Earth Science Division (ESD). EMIT is comprised of a Visible/Shortwave Infrared Dyson imaging spectrometer adapted for installation on the International Space Station (ISS). It will be installed on Flight Releasable Attachment Mechanism (FRAM) of an ExPRESS Logistics Carrier (ELC) on the ISS, in a site formally designated ELC 1 FRAM 8. NASA has assigned management of the Project to the Jet Propulsion Laboratory of the California Institute of Technology. The EMIT Payload is scheduled to be installed on the ELC 1 FRAM 8 in 2021. Table 1 above describes the different data products to which the EMIT Mission will provide to data archives. This document describes the "Level 2A" stage.
 
 <p align="center">
-    <img src="img_v1/fig01.png" width="100%", alt="Figure 1">
+    <img src="img/fig01.png" width="100%", alt="Figure 1">
 </p>
 
 *Figure 1: Representative spectra from the EMIT analysis, data product levels 0, 1b, and 2a. (Level 0: Raw instrument data; Level 1b: Calibrated spectral radiance at sensor; Level 2a: Estimated surface reflectance (HRDF).)*
 
 <p align="center">
-    <img src="img_v1/fig02.png" width="100%", alt="Figure 2">
+    <img src="img/fig02.png" width="100%", alt="Figure 2">
 </p>
 
 *Figure 2. High-level workflow of the EMIT science data system.*
@@ -146,7 +146,7 @@ EMIT atmospheric correction produces data cubes of calibrated, georectified surf
 Figure 3 below illustrates the sequence of operations along with the major input and output products at each stage. All procedures execute sequentially moving from top to bottom. Boxes are colored according to their designation as level 1B, level 2A, or intermediate products. Sub-sections of this document will describe each respective procedure.
 
 <p align="center">
-    <img src="img_v1/fig03.png" width="70%%", alt="Figure 3">
+    <img src="img/fig03.png" width="70%%", alt="Figure 3">
 </p>
 
 
@@ -156,12 +156,16 @@ Figure 3 below illustrates the sequence of operations along with the major input
 
 Physics-based retrieval of atmospheric parameters and surface reflectance relies on mathematical models, also called forward models, expressing the spectral radiance recieved by the instrument at top-of-atmosphere as a sum of radiative terms from different processes experienced along photon paths. These include photon scattering by the atmosphere into the sensor line of sight, atmospheric gas absorption, and multiple scattering events between the atmosphere and the surface (Figure 4). Photon paths can be further decomposed into directional and diffuse fluxes from the sun, to the surface, and back to the sensor. These include direct-direct, direct-hemispherical, hemispherical-direct, and hemispherical-hemispherical paths, where direct refers to an upward or downward photon path without an atmospheric scattering event, and hemispherical refers to an upward or downward photon path with a scattering event and represents an integration of the hemisphere of scattered light (Vermote et a., 1997). The first term in the pair, for example direct in direct-hemispherical, refers to the downward photon path while the later refers to the upward photon path. Hemispherical photon paths are called diffuse throughout this document. While in general, the atmospheric effects are dependent on non-Lambertian properties of surface-atmosphere coupling, the EMIT analyses permit several simplifications. The mineral absorption fits used in later stages are relatively invariant to spectrally-featureless magnitude differences resulting from non-Lambertian behavior. Additionally, surfaces in arid mineral dust forming regions are mostly Lambertian at that instrument's ground sampling. Finally, instrument zenith angle is near to nadir. These circumstances mean that we can report Lambertian-equivalent properties in the general case without significant loss of accuracy to downstream algorithms. The lambertian assumption permits the use of the following forward model based on Vermote et al., (1997):
 
-$$L_o = L_{atm} + L_{dir,dir}\rho + L_{dif,dir}\rho + L_{dir,dif}\rho + L_{dif,dif} + \frac{L_{tot}S\rho^2}{1-S\rho} \tag{1}$$
+$$
+L_o = L_{atm} + L_{dir,dir}\rho + L_{dif,dir}\rho + L_{dir,dif}\rho + L_{dif,dif} + \frac{L_{tot}S\rho^2}{1-S\rho}
+$$
+
+(Equation 1)
 
 where $L_o$ is the radiance measured by the instrument, $L_{atm}$ is the atmospheric path radiance, $L_{dir,dir}$, $L_{dif,dir}$, $L_{dir,dif}$, and $L_{dif,dif}$ are the coupled atmospheric radiance for respective downward and upward, direct and diffuse (hemispherical) photon paths, $L_{tot}$ is the total atmospheric radiance calculated as the sum of the four couple terms, $S$ is the spectral albedo representing the atmospheric reflectance as seen from the surface, and $\rho$ is the Lambertian-equivalent surface reflectance. Each variable in equation 1 is a vector quantity and the multiplication between them represents element-wise multiplication.
 
 <p align="center">
-    <img src="img_v1/fig04.png" width="50%%", alt="Figure 4">
+    <img src="img/fig04.png" width="50%%", alt="Figure 4">
 </p>
 
 *Figure 4: The atmospheric correction process involves jointly estimating the parameters of a model that includes the surface reflectance, the atmospheric constituents, and the instrument. We use a six component forward model that models radiance as a sum of photon paths that 1) are scattered by the atmosphere into the sensor line of sight without interacting with the surface ($L_{atm}$), 2) photons that are directly transimtted from sun, to surface, and back to sensor without additional scattering events ($L_{dir,dir}$), 3) and 4) photons that are directly transmitted either upwards or downwards, reflect off of the imaged surface, but are scattered by the atmosphere in the complimentary direction ($L_{dir,dif}$ and $L_{dif,dir}$), 5) photons that are scattered by the atmosphere in both upward and downward directions enroute from sun-surface-sensor ($L_{dif,dir}$), and finally 6) photon paths that ungergo multiple successive scattering between surface and atmosphere (not shown).*
@@ -169,7 +173,7 @@ where $L_o$ is the radiance measured by the instrument, $L_{atm}$ is the atmosph
 Radiance and spherical albedo terms in equation 1 are related to the physical properties in the atmosphere. Of special interest are the scattering and absorption by molecular gases and aerosols (Figure 4), which all contribute to each of the terms in equation 1. An example of the radiance contribution from gas absorption and aerosol scattering appears in Figure 5 below. EMIT atmospheric correction includes three free parameters within the joint statevector, estimates of column precipitable water vapor, $H_2O$ ($\frac{g}{cm^2}$), a proxy for atmospheric carbon dioxide concentration, $CO_2 (ppm)$, and aerosol optical depth, $AOD$. Each variable contributes to atmospheric radiance profiles, reflecting the depth of absorption features and the overall spectral shape (e.g. Figure 5). It's important to note that the $CO_2$ solution is a crude proxy used to remove artifacts in surface reflectance solutions and should not be used as an accurate estimate of atmospheric $CO_2$ concentration.
 
 <p align="center">
-    <img src="img_v1/fig05.png" width="80%%", alt="Figure 5">
+    <img src="img/fig05.png" width="80%%", alt="Figure 5">
 </p>
 
 *Figure 5: (top) Atmospheric transmittance by wavelength across the EMIT spectral interval annotated with strong atmospheric absorption features. Black line shows the total transmittance, while colors show the four separated coupled upward-downward direct-diffuse transmittance. (bottom) Atmospheric radiance converted from the transmittance of the top plot. The AC pipeline tracks everything in radiance units rather than transmittance.*
@@ -183,7 +187,7 @@ We generate the EMIT global LUT using an updated, and retrained version of the s
 Given a specific solar, instrument, surface, and atmospheric state, sRTMnet Version 2 (V2) estimates all six required atmospheric profiles at high (0.1 nm) spectral resolution. The input data for each sRTMnet grid-point prediction is a 6S radiative transfer simulation (Vermote et al., 1997) with input parameters matching the grid-point state, and can be performed rapidly at 2.5 nm spectral resolution. The 6S source code, has been updated by this team to report the six necessary atmospheric profiles for input into sRTMnet V2 (found at: https://github.com/isofit/6S). The output of the emulator are 0.1 nm spectral resolution vectors for the six atmospheric profiles ($L_{atm}, L_{dir,dir}, L_{dir,dif}, L_{dif,dir}, L_{dif,dif}$, and $S$).
 
 <p align="center">
-    <img src="img_v1/fig06.png" width="50%%", alt="Figure 6">
+    <img src="img/fig06.png" width="50%%", alt="Figure 6">
 </p>
 
 *Figure 6: Aerosol profiles (image and approach adapted from Thompson et al., 2019c), comparing three different aerosol types. Type A is a strongly absorbing aerosol signature derived from soot. Type B is a separate signature based on continental dust absorption and scattering coefficients. Type C is the aerosol used for the EMIT retrievals - a small scattering particle based on a sulfate signature.*
@@ -195,7 +199,7 @@ A full per-pixel implementation of the iterative OE retrieval is computationally
 First, all spectra in the input radiance file are reduced to a basis of five orthogonal dimensions with principal components analysis. We then segment the 5 dimension basis space into regions that are (a) spatially contiguous and (b) contain several hundred pixels of similar radiance properties. Figure 7 illustrates the superpixel segmentation of an EMIT scene (emit20240419t183331). It results in a reduced subset of locally-representative radiances and associated regions. This dataset is typically 2-3 orders of magnitude faster to analyze. Additionally, it significantly reduces noise variance to assist with accurate atmosphere estimation. For each superpixel we take the mean radiance, location, and observation data as the input to the first atmospheric correction stage.
 
 <p align="center">
-    <img src="img_v1/fig07.png" width="85%%", alt="Figure 7">
+    <img src="img/fig07.png" width="85%%", alt="Figure 7">
 </p>
 
 *Figure 7: SLIC segmentation combines contiguous pixels of similar radiance properties into a single local reference area and associated radiance spectrum. (left) Original radiance RGB of Puget Sound. (middle) RGB of SLIC segmented radiance cube with a segmentation size of 40. (right) Blow-up highlight better demonstrating the superpixel scale. Note that superpixels generally follow coastlines and other areas of prominant surface type change.*
@@ -206,15 +210,27 @@ Our retrieval algorithm is based on Bayesian Maximum A Posteriori (MAP) inversio
 
 The Bayesian Model inversion acts as a local ascent of the posterior probability density for a state vector x consisting of surface, atmosphere, and instrument parameters (Figure 7). As in Thompson et al. (2018) we initialize the result to a heuristic estimate using a band ratio across water vapor absorption features, and an algebraic inversion of equation (1). Then, an iterative gradient-based Levenberg Marquardt follows the (negative) derivative of the following cost function until converging to a local minimum:
 
-$$\chi^2(\mathbf{x}_r) = \frac{1}{2}(\hat{\mathbf{x}}_L - \mathbf{F}(\mathbf{x}_r))^T \Psi_L^{-1} (\hat{\mathbf{x}}_L - \mathbf{F}(\mathbf{x}_r)) + \frac{1}{2}(\mathbf{x}_r - \mu_r)^T \Sigma_r^{-1} (\mathbf{x}_r - \mu_r) \tag{2}$$
+$$
+\chi^2(\mathbf{x}_r) = \frac{1}{2}(\hat{\mathbf{x}}_L - \mathbf{F}(\mathbf{x}_r))^T \Psi_L^{-1} (\hat{\mathbf{x}}_L - \mathbf{F}(\mathbf{x}_r)) + \frac{1}{2}(\mathbf{x}_r - \mu_r)^T \Sigma_r^{-1} (\mathbf{x}_r - \mu_r)
+$$
+
+(Equation 2)
 
 The first term is related to the logarithm of the multivariate data likelihood at the current reflectance, atmosphere, and instrument state vector, $\mathbf{x}_r$. Here $\Psi_L$ is the observation noise that incorporates measurement noise in the radiance measurement $\hat{\mathbf{x}}_L$ as well as any unknowns in the surface atmosphere system that are treated here as random variables. The forward model $\mathbf{F}(\mathbf{x}_r)$ primarily consists of the radiative transfer formalism (Equation 1; 3.3.1) that maps $\mathbf{x}_r$ to the measurement space using Lookup table interpolation of the six optical coefficient vectors. The forward model also contains three aggregated empirical residual orthogonal functions (EOFs) to capture cross-collection systematic residual error due to small biases in radiative transfer modeling (O'Dell et al., 2018). Residual EOFs are calculated as a function of the instrument portion of the statevector such that the magnitude of EOF contribution is estimated as part of the full joint solution.
 
-$$r_{eof} = \sum_{i=1}^{N=3} \beta_{EOF_1}e_i \tag{3}$$
+$$
+r_{eof} = \sum_{i=1}^{N=3} \beta_{EOF_1}e_i
+$$
+
+(Equation 3)
 
 where $r_{eof}$ is the additive perturbation within the forward model, $e_i$ is the EOF vector, a static quantity, and $\beta_{EOF_1}$ is the fit coefficient, part of the statevector. The full estimated statevector is:
 
-$$x_r = [\rho_1, \rho_2, ..., \rho_n, AOD_{550}, CO_2, H_2O, \beta_{EOF_1}, \beta_{EOF_2}, \beta_{EOF_3}] \tag{4}$$
+$$
+x_r = [\rho_1, \rho_2, ..., \rho_n, AOD_{550}, CO_2, H_2O, \beta_{EOF_1}, \beta_{EOF_2}, \beta_{EOF_3}]
+$$
+
+(Equation 4)
 
 where $\rho_1$ through $\rho_n$ are the Lambertian-equivalent surface reflectance at all retrived EMIT wavelengths, $AOD_{550}$ is the aerosol optical depth at 550 nm, $CO_2$ is the proxy carbon dioxide concentration in ppm, and $H_2O$ is the column precipitable water vapor in $\frac{g}{cm^2}$.
 
@@ -224,12 +240,16 @@ The surface portion of the prior distribution is loose and heavily regularized. 
 
 Upon convergence, the linearization of the forward model produces an estimate of the posterior probability density. For $\mathbf{K}_r$ representing Jacobian matrices of partial derivatives, i.e. the instantaneous change in the state vector from a change in the calibrated radiance, the posterior covariance takes the form:
 
-$$\Psi_r = (\mathbf{K}_r^T \Psi_L^{-1} \mathbf{K}_r + \Sigma_r^{-1})^{-1} \tag{5}$$
+$$
+\Psi_r = (\mathbf{K}_r^T \Psi_L^{-1} \mathbf{K}_r + \Sigma_r^{-1})^{-1}
+$$
+
+(Equation 5)
 
 This yields a reflectance, atmosphere, instrument and uncertainty estimates for each reference superpixel spectrum.
 
 <p align="center">
-    <img src="img_v1/fig08.png" width="70%%", alt="Figure 8">
+    <img src="img/fig08.png" width="70%%", alt="Figure 8">
 </p>
 
 *Figure 8: The Bayesian model inversion begins at an initial guess, and climbs the local gradient of the posterior probability density (equivalently, minimizing the cost function in equation 2). At the time of convergence, this produces a linearized estimate of posterior uncertainty, portrayed here as an ellipsoid.*
@@ -239,31 +259,41 @@ This yields a reflectance, atmosphere, instrument and uncertainty estimates for 
 Full per-pixel retrievals are generated by the analytical line algorithm. The algorithm consists of two parts. First, we extrapolate the solved superpixel atmospheric field (figure 9) to the full per-pixel cube resolution using a local linear model with small amounts of (spatial) gaussian smoothing. The local linear model approximates the Gaussian Process Regression used in Eckert et al. (2024), while being computationally efficient for large-scale processing. However, the benefit is not just computational. Locally smooth atmospheres better represent natural atmospheres, which are spatially correlated over local length-scales (Thompson et al., 2022). The analytical calculation for the surface reflectance portion of the statevector requires the fixed per pixel atmosphere produced by the atmospheric extrapolation.
 
 <p align="center">
-    <img src="img_v1/fig09.png" width="100%%", alt="Figure 9">
+    <img src="img/fig09.png" width="100%%", alt="Figure 9">
 </p>
 
 *Figure 9: (Left) EMIT superpixel reflectance RGB of the area in proximity to Cuprite, NV. (Middle) Atmospheric extrapolation from the superpixel water vapor solution to a smooth per-pixel water vapor field. (Right) Per-pixel reflectance RGB leveraging the smooth, constrained atmosphere.*
 
 The calculation for the surface reflectance follows the inner loop of Susiluoto et al. (2025), who derive an anlytical solution of the cost function (equation 2), with the assumption of a linear forward model with resepect to statevector elements and fixed atmosphere. The multi-scattering term in equation 1 is non-linear. We address this with the following approximation:
 
-$$ \mathbf{f} = \mathbf{S\rho_{superpixel}}$$
+$$
+\mathbf{f} = \mathbf{S\rho_{superpixel}}
+$$
 
 where $\mathbf{S}$ is the spherical albedo of the atmosphere and $\mathbf{\rho_{superpixel}}$ is the estimated surface reflectance of the associated superpixel. We use bold-font throughout this subsection to indicate that these are vector quantities. We define the total transmitted radiance as the sum of the coupled radiance vectors:
 
-$$ \mathbf{L_{tot}} = \mathbf{L_{dir,dir}} + \mathbf{L_{dif,dir}} + \mathbf{L_{dir,dif}} + \mathbf{L_{dif,dif}}$$
+$$
+\mathbf{L_{tot}} = \mathbf{L_{dir,dir}} + \mathbf{L_{dif,dir}} + \mathbf{L_{dir,dif}} + \mathbf{L_{dif,dif}}
+$$
 
 The linearized forward model becomes:
 
-$$\mathbf{L} - \mathbf{L_{atm}} = (\mathbf{L_{tot}} + \frac{\mathbf{L_{tot}}\mathbf{f}}{1 - \mathbf{f}})\mathbf{\rho} \tag{6}$$
+$$
+\mathbf{L} - \mathbf{L_{atm}} = (\mathbf{L_{tot}} + \frac{\mathbf{L_{tot}}\mathbf{f}}{1 - \mathbf{f}})\mathbf{\rho}
+$$
+
+(Equation 6)
 
 which satisfies the forward model in the form of, $y=H_{(k-1)}x+\epsilon$, with $y=\mathbf{L} - \mathbf{L_{atm}}$,
 
-$$H_{(k-1)}=\begin{bmatrix}
+$$
+H_{(k-1)}=\begin{bmatrix}
     \theta_1 & .. &.. & .. \\
     .. & \theta_2 &.. & .. \\
     .. & .. & .. & .. \\
     .. & .. & .. & \theta_n\\
-\end{bmatrix}$$
+\end{bmatrix}
+$$
 
 and $x =  [\rho_1, \rho_2, ..., \rho_n]$.
 
@@ -271,18 +301,26 @@ $\theta$ is the transmitted radiance at each respective EMIT wavelength followin
 
 In this form, the inverse problem is linear Gaussian with a posterior distribution, $p_{(k)}(y\vert x)=\mathcal{N}(\hat{x}_{(k)}, \Psi_r)$ (Susiluoto et al., 2025). With a mean of:
 
-$$\hat{x}_{(k)} = \Psi_rH^T_{(k)}\Psi_L^{-1}y+\Psi_r\Sigma_r^{-1}\mu_r \tag{7}$$
+$$
+\hat{x}_{(k)} = \Psi_rH^T_{(k)}\Psi_L^{-1}y+\Psi_r\Sigma_r^{-1}\mu_r
+$$
+
+(Equation 7)
 
 and covariance of:
 
-$$\Psi_r = (H^{T}_{(k)}\Psi_L^{-1}H_{(k)}+\Sigma_r^{-1})^{-1} \tag{8}$$
+$$
+\Psi_r = (H^{T}_{(k)}\Psi_L^{-1}H_{(k)}+\Sigma_r^{-1})^{-1}
+$$
+
+(Equation 8)
 
 Matching equation (2), $\Psi_L$ is the measurement error covariance, and the prior distribution on $x$ is $p_{(x)}=\mathcal{N}(\mu_r,\Sigma_r)$.
 
 In practice, equations (7) and (8) are assumed to converge in a single step. 
 
 <p align="center">
-    <img src="img_v1/fig10.png" width="90%%", alt="Figure 9">
+    <img src="img/fig10.png" width="90%%", alt="Figure 9">
 </p>
 
 *Figure 10: Spectral diversity within a single superpixel. The superpixel solution is shown in dark red. Each gray spectrum is the estimated reflectance calculated following equation (X) for individual pixels wihtin a super pixel. Note the variable depth of the SWIR absorption features.*
@@ -384,19 +422,19 @@ Any file can contain "bad data" as a result of cloud masking or instrument error
 
 Level 2 reflectances will be validated using standard field protocols used in prior field studies (Thompson et al., 2018, 2019a, 2019b, 2020a). We will measure surface reflectance of a large uniform bright surface, such as a playa, using field spectroradiometers, with coincident in-situ AEROSOL optical depth estimation by sun extinction measurements from the ground, during the EMIT overflight. Instrument measurement and spatial variability, combined with uncertainties in the atmospheric model and retrieval, can demonstrate closed uncertainty budgets as in Thompson et al. (2020a) or simply good agreement between the estimate and reality, as in Thompson et al. (2018). Figure 15 below shows examples of a calibration/validation experiment at Stonewall Playa, Ivanpah, with the spectroradiometer field unit (left panel), the playa itself (center panel), and the comparison of reflectances (right panel). Our calibration and validation plan includes several locations that we will use opportunistically in response to ISS overpasses.
 
-![Figure 15](img_v1/fig15.png)
+![Figure 15](img/fig15.png)
 
 *Figure 15: Left: Field spectroradiometer for validation. Center: Stonewall Playa validation site. Nimrod Carmon demonstrating. Right: Remote and in-situ retrievals with 1σ uncertainty predictions (Thompson et al., 2020).*
 
 Prior verification and validation for the Level 2 algorithm takes several approaches. The codebase is available as open source (ISOFIT, 2019) and has a growing community of users in the research community. The method draws from decades of atmospheric sounding research (Rogers 2000) and its specific application to imaging spectroscopy has been vetted for multiple instruments and campaigns across continents, compared with in situ data and published in peer reviewed literature. Publications referencing the results of this code on airborne precursor data include work by Thompson et al. (2018, 2019b, 2019c), Frouin et al. (2019), and Bue et al. (2019). Field trials demonstrate good alignment with in-situ reflectance data, and residuals consistent with posterior error predictions. Figure 16 shows one example from Ivanpah Playa, conducted in 2018.
 
-![Figure 16](img_v1/fig16.png)
+![Figure 16](img/fig16.png)
 
 *Figure 16: In situ validation of reflectance estimation algorithm. (Above) In situ and remote measurements align to within posterior error predictions. Adapted from Thompson et al. (2018). (Right) Field validation at Ivanpah Playa, from Thompson et al (2019). Panels show the Ivanpah reflectance residual (Remote − in situ estimate) and the Green Artificial Turf reflectance residual, comparing the initial heuristic retrieval solution and the converged posterior solution against 50% and 95% bounds across wavelength (400–2400 nm).*
 
 AOD estimates show good alignment with spatiotemporally-proximal MODIS retrievals over difficult hazy conditions, and with in-situ estimates by handheld sunphotometers (Figure 17).
 
-![Figure 17](img_v1/fig17.png)
+![Figure 17](img/fig17.png)
 
 *Figure 17: (Left) MODIS AOD550 estimates align with remote airborne retrievals acquired on the same day within a latitude/longitude degree (r = 0.835). (Right) Airborne retrievals align with in-situ sunphotometry (r = 0.826). Both images are from Thompson et al. (2019c).*
 
@@ -404,13 +442,13 @@ For the EMIT mission we performed a separate sensitivity study to determine the 
 
 Our experiment uses an atmosphere based on the iron-oxide-bearing dust mineral profile in the CAM earth system model. This is a strongly absorbing aerosol with shapes distinctly different from the profile palette in our inversion. Notably, the shapes of optical absorptions by atmospheric dust also differ significantly from the surface minerals. They are also somewhat muted in their airborne dust form due to embedding within larger particles. As a consequence, we hypothesize that a band depth estimate of hematite absorption surface signatures should not be significantly affected by any surface reflectance error from this mismatch. To test this, we simulate a stressing case in which the instrument observes a hematite absorption feature, with and without an additional perturbation at 2% relative band depth. This level of sensitivity is the detection limit targeted by EMIT. Our reference atmosphere presumes typical ISS viewing geometry, but under very hazy conditions. The AOD550 is fixed at our mission-level acceptance threshold 0.4, beyond which a "bad data" flag would be triggered. Figure 18 shows the optical properties of the ESM iron oxide aerosol, given as spectral absorption and single scattering albedo efficiencies for a total extinction normalized to unity at 550 nm.
 
-![Figure 18](img_v1/fig18.png)
+![Figure 18](img/fig18.png)
 
 *Figure 18: Dust optical properties for the iron oxide profiles used in the CAM ESM model. The aerosol absorption profile, in blue, contains subtle iron oxide absorption features but these atmospheric signatures are muted relative to the (stark) mineralogical features visible at the surface. Curves show extinction (normalized to unity at 550 nm), scattering efficiency, absorption efficiency, and asymmetry parameter across 400–2400 nm.*
 
 We calculate the continuum-relative surface reflectance absorption from the USGS spectral library version 7.0. We performed forward prediction of TOA radiances via the MODTRAN RTM, added relevant instrument noise calculated via Current Best Estimate (CBE) instrument models, and finally inverted the result with our standard atmospheric correction algorithm. For each result, we estimated the reflectance of the unperturbed and perturbed case, with the ratio of the two showing the estimated relative difference in hematite. The resulting relative absorptions appear in Figure 19 below. Note that the unexpected distortion of H2O vapor features induces some structured error near those windows at 940 and 1140 nm. However, the overall depth and shape of the critical hematite absorption is not significantly affected. This is also apparent in the resulting band depth estimate vis a vis the interpolated continuum, which differs by a small percent of the surface reflectance - 19.626% vs 19.608% for the undistorted case. In other words, small perturbations of the background, recognized using spectral shapes based on relative radiometry (the EMIT strategy), are not significantly distorted. The relative difference of <0.1% would not endanger the ability to detect the addition of hematite to the surface at 2% areal fractional occurrence, and would not affect the mineralogy estimates to a level that would endanger mission success.
 
-![Figure 19](img_v1/fig19.png)
+![Figure 19](img/fig19.png)
 
 *Figure 19: The result of atmospheric simulation and inversion under mismatched aerosol optical types, retrieving an iron oxide mineral signature under an iron-oxide-bearing aerosol. The unexpected distortion of H2O vapor features induces some structured error near those absorptions at 940 and 1140 nm. However, the overall depth and shape of the critical hematite absorption feature is not significantly affected. Estimated and true apparent reflectance ratios (%) are compared across 800–1200 nm.*
 
