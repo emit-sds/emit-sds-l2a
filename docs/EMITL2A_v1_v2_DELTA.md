@@ -21,14 +21,15 @@ Pasadena, California 91109-8099
 ## Table of Contents
 1. [Reflectance comparison](#1-reflectance-comparison)
 2. [Summary of changes](#2-summary-of-changes)
-    - 2.1. [Updated Radiative Transfer Model](#21-updated-radiative-transfer-model)
-    - 2.2. [Pre-cached global look-up tables](#22-pre-cached-luts)
-    - 2.3. [Empirical orthogonal functions (EOFs)](#23-empirical-orthogonal-functions)
-    - 2.4. [Edited Surface Reflectance Statistical Prior](#24-edited-surface-reflectance-statistical-prior)
-    - 2.5. [Variable atmospheric carbon dioxide concentration ($CO_2$)](#25-variable-atmospheric-co2)
-    - 2.6. [Constrained Aerosol Optical Depth Prior Variance](#26-constrained-aerosol-optical-depth-prior-variance)
-    - 2.7. [Removed pressure elevation from solution state](#27-pressure-elevation)
-    - 2.8. [Updated L1B radiometry and wavelength solutions](#28-updated-radiometry-wavelengths)
+    - 2.1. [Updated Radiative Transfer Formalism (Forward Model)](#21-updated-forward-model)
+    - 2.2. [Updated Radiative Transfer Model](#22-updated-radiative-transfer-model)
+    - 2.3. [Pre-cached global look-up tables](#23-pre-cached-luts)
+    - 2.4. [Empirical orthogonal functions (EOFs)](#24-empirical-orthogonal-functions)
+    - 2.5. [Edited Surface Reflectance Statistical Prior](#25-edited-surface-reflectance-statistical-prior)
+    - 2.6. [Variable atmospheric carbon dioxide concentration ($CO_2$)](#26-variable-atmospheric-co2)
+    - 2.7. [Constrained Aerosol Optical Depth Prior Variance](#27-constrained-aerosol-optical-depth-prior-variance)
+    - 2.8. [Removed pressure elevation from solution state](#28-pressure-elevation)
+    - 2.9. [Updated L1B radiometry and wavelength solutions](#29-updated-radiometry-wavelengths)
 
 ---
 
@@ -38,33 +39,51 @@ Pasadena, California 91109-8099
 
 ## 2. Summary of Changes
 
-### 2.1. Updated Radiative Transfer Model (RTM)
+### 2.1. Updated Radiative Transfer Formalism (Forward Model) [↑](#table-of-contents)
 
+Version 2 updates the radiative transfer formalism, i.e., the forward model, which quantifies light transfer through the atmosphere and surface. Version 2 leverages a form, which accounts for six distinct photon paths (ATBD Section 3.2.1; Vermote et al., 1997):
 
+$$
+L_o = L_{atm} + L_{dir,dir}\rho + \frac{L_{dif,dir}\rho}{1-S\rho} + L_{dir,dif}\rho + \frac{L_{dif,dif}\rho}{1-S\rho} + \frac{L_{tot}S\rho^2}{1-S\rho} \qquad (1)
+$$
+
+where $L_o$ is the radiance measured by the instrument, $L_{atm}$ is the atmospheric path radiance, $L_{dir,dir}$, $L_{dif,dir}$, $L_{dir,dif}$, and $L_{dif,dif}$ are the coupled atmospheric radiances, $L_{tot}$ is the total atmospheric radiance, $S$ is the spectral albedo representing the atmospheric reflectance as seen from the surface, and $\rho$ is the Lambertian-equivalent surface reflectance. Each variable is a vector quantity. Multiplication between them represents element-wise multiplication. 
+
+The advantage of the Version 2 forward model is that it allows for better constrained, and more complete physical models of the surface and atmosphere. Surface-specific modeling can leverage split, coupled radiances to explicitely capture directional and hemisphere-related phenomena like water surface glint (Bohn et al., 2025) and adjacency effects (CITATION).
+
+The Version 1 forward model in contrast, is:
+
+$$
+L_o = L_{atm} + \frac{L_{tot}\rho}{1 - S\rho} \qquad (2)
+$$
+
+In EMIT processing, the practical impact of the forward model difference is the inclusion of an explicit multi-scattering term, $\frac{L_{tot}S\rho^2}{1-S\rho}$. The multi-scattering term captures photon paths that may undergo multiple scattering events between surface and atmosphere before reaching the detector. This term is generally small in magnitude and differences in modeled radiances between including it and not are on the order of 1% (Figure 1).
 
 <p align="center">
-    <img src="img_v1_v2_delta/fig01.png" width="100%", alt="Figure 1">
+    <img src="img_v1_v2_delta/fig01.png" width="70%", alt="Figure 1">
 </p>
 
-*Figure 1. (top row) Modeled photon path-specific transmittances at varying atmospheric water vapor concentration. (bottom row) Coupled atmospheric radiances calculated from the path-separated transmittances.*
+*Figure 1. (**top**) Forward calculations at varying aerosol optical depth (AOT) following the Version 2 forward model (Equation 1; dark lines) and the Version 1 forward model (Equation 2; light lines). All calculations use the same reflectace vector and atmospheric state ($H_2O = 2.78$, $CO_2 = 409.3$). (botttom) Residual difference between forward model calculations following the two equations.*
+
+### 2.2. Updated Radiative Transfer Model (RTM) [↑](#table-of-contents)
+
+The version 2 L2A product uses an updated radiative transfer model to build atmospheric look-up tables (LUTs). Both Versions 1 and 2 use flavors of the sRTMnet emulator (Brodrick et al., 2021) described in section 3.2.2 in the ATBD. The key difference between the model versions is that version 2 of the sRTMnet model (sRTMnet V2) is specifically trained to predict all six components used to compute the required inputs for the Version 2 forward model (Equation 1). 
+
+Version 2 sRTMnet predicts atmospheric path reflectance, $\rho_{atm}$, transmittance of downward-direct photon paths, $t_{down,dir}$, transmittace of downward-diffuse photon paths, $t_{down,dif}$, transmittance of updward-direct photon paths, $t_{up,dir}$, transmittance of upward-diffuse photon paths, $t_{up,dif}$, and the spherical albedo of the atmosphere, $S$ at 0.1 nm spectral resolution. Version 1 sRTMnet  in contrast, predicts $\rho_{atm}$, total atmospheric transmittance, $t_{tot}$, and $S$ at 0.5 nm spectral resolution.
+
+Differences between sRTMnet versions are dependent on the atmospheric state and most prominent in extreme atmospheres (Figure 2 and Figure 3). With respect to aerosol optical depth (AOD) and atmospheric water vapor ($H_2O$), there consistent differences at visible wavelengths and within water absorption feaures reflecting the shape of the dependence between atmospheric transmittance and these two variables.
 
 <p align="center">
     <img src="img_v1_v2_delta/fig02.png" width="100%", alt="Figure 2">
 </p>
 
-*Figure 2. (top row) Modeled photon path-specific transmittances at varying Aerosol optical depth. (bottom row) Coupled atmospheric radiances calculated from the path-separated transmittances.*
+*Figure 2. Modeled total transmittance with (left) version 1 sRTMnet and (middle) version 2 sRTMnet at varying atmosphere water vapor concentration. Comparison is made with constant $AOD = 0.2$. (right) Residual difference between version 2 - version 1.*
 
 <p align="center">
     <img src="img_v1_v2_delta/fig03.png" width="100%", alt="Figure 3">
 </p>
 
-*Figure 3. Modeled total transmittance with (left) version 1 sRTMnet and (middle) version 2 sRTMnet at varying atmosphere water vapor concentration. (right) Residual difference between version 2 - version 1.*
-
-<p align="center">
-    <img src="img_v1_v2_delta/fig04.png" width="100%", alt="Figure 4">
-</p>
-
-*Figure 4. Modeled total transmittance with (left) version 1 sRTMnet and (middle) version 2 sRTMnet at varying aerosol optical depth. (right) Residual difference between version 2 - version 1.*
+*Figure 3. Modeled total transmittance with (left) version 1 sRTMnet and (middle) version 2 sRTMnet at varying aerosol optical depth. Comparison is made with constant $H_2O = 0.6$. (right) Residual difference between version 2 - version 1.*
 
 ### 2.2. Pre-cached global look-up tables
 ### 2.3. Empirical orthogonal functions (EOFs)
@@ -106,3 +125,9 @@ Pasadena, California 91109-8099
 *Figure 12. (top) Scene-wide mean and 1.96 * standard deviation reflectance for scenes processed with and without pressure elevation. (bot) Wavelength-specific residual calculated per-pixel as scene processed with pressure elevation - without pressure elevation.*
 
 ### 2.9. Edited atmospheric length scales
+
+
+### 3 References [↑](#table-of-contents)
+
+
+Vermote, E. F., Tanré, D., Deuze, J. L., Herman, M., & Morcette, J. J. (1997). Second simulation of the satellite signal in the solar spectrum, 6S: An overview. IEEE transactions on geoscience and remote sensing, 35(3), 675-686.
