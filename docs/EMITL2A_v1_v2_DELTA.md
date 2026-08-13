@@ -19,7 +19,7 @@ Pasadena, California 91109-8099
 
 
 ## Table of Contents
-1. [Reflectance comparison](#1-reflectance-comparison)
+1. [Updates to Level 2A reflectance between Version 1 and Version 2](#1-reflectance-comparison)
 2. [Summary of changes](#2-summary-of-changes)
     - 2.1. [Updated Radiative Transfer Formalism (Forward Model)](#21-updated-forward-model)
     - 2.2. [Updated Radiative Transfer Model](#22-updated-radiative-transfer-model)
@@ -33,9 +33,52 @@ Pasadena, California 91109-8099
 
 ---
 
-## 1. Reflectance comparison
+## 1. Updates to Level 2A reflectance between Version 1 and Version 2
 
-*TODO: Add in-situ comparison exercise. We have reference reflectance match-ups for V2. Can we compare to V1?*
+Version 2 Level 2A products address minor issues across the spectrum. In general, Version 2 loosens prior constraint in regions of the spectrum with critical mineral absorption features, improves reflectance solutions at visible wavelengths, reduces noise at the edges of deep water vapor features, and minimizes aparrent non-physical absorption features.
+
+
+#### Insitu comparison of a playa surface
+
+<p align="center">
+    <img src="img_v1_v2_delta/fig01.png" width="90%", alt="Figure 1">
+</p>
+
+*Figure 1: Version 1 and Version 2 EMIT reflectance compared to in-situ field spectra collected as part of the Gem-X campaign. Several SWIR 2 artifacts are removed in Version 2 data. The arrow points to a prominant feature present in Version 1 that is removed in Version 2.*
+
+#### Comparison of a vegetation spectrum
+
+<p align="center">
+    <img src="img_v1_v2_delta/fig02.png" width="90%", alt="Figure 2">
+</p>
+
+*Figure 2: Example Version 1 and Version 2 EMIT vegetation reflectance. The retrieval uses a surface prior representation from mixed soil-vegetation. The arrow points to the region of the spectrum with looser priors to enable mineral absorption identification.*
+
+#### Comparison of a water spectrum
+
+<p align="center">
+    <img src="img_v1_v2_delta/fig03.png" width="90%", alt="Figure 3">
+</p>
+
+*Figure 3: Example Version 1 and Version 2 EMIT water reflectance. The arrow points to the difference in magnitude at visible wavelengths resulting from the transition between Version 1 sRTMnet and Version 2 sRTMnet.*
+
+#### Comparison of a snow spectrum
+
+<p align="center">
+    <img src="img_v1_v2_delta/fig04.png" width="90%", alt="Figure 4">
+</p>
+
+*Figure 4: Example Version 1 and Version 2 EMIT snow reflectance. The difference in reflectance magnitude visible wavelengths is caused by the Version 1 sRTMnet to Version 2 sRTMnet transition.*
+
+
+#### Loosened NIR surface priors to enable mineral absorption identification
+
+<p align="center">
+    <img src="img_v1_v2_delta/fig05.png" width="70%", alt="Figure 5">
+</p>
+
+*Figure 5. Example emit spectra with characteristic Neodymium absorption features. Features are more prominent in Version 2 because we loosen prior constraints specifically within this region.*
+
 
 ## 2. Summary of Changes
 
@@ -60,10 +103,10 @@ $$
 In EMIT processing, the practical impact of the forward model difference is the inclusion of an explicit multi-scattering term, $\frac{L_{tot}S\rho^2}{1-S\rho}$. The multi-scattering term captures photon paths that may undergo multiple scattering events between surface and atmosphere before reaching the detector. This term is generally small in magnitude and differences in modeled radiances between including it and not are on the order of 1% (Figure 1).
 
 <p align="center">
-    <img src="img_v1_v2_delta/fig01.png" width="70%", alt="Figure 1">
+    <img src="img_v1_v2_delta/fig06.png" width="70%", alt="Figure 6">
 </p>
 
-*Figure 1. (**top**) Forward calculations at varying aerosol optical depth (AOT) following the Version 2 forward model (Equation 1; dark lines) and the Version 1 forward model (Equation 2; light lines). All calculations use the same reflectace vector and atmospheric state ($H_2O = 2.78$, $CO_2 = 409.3$). (botttom) Residual difference between forward model calculations following the two equations.*
+*Figure 2. (**top**) Forward calculations at varying aerosol optical depth (AOT) following the Version 2 forward model (Equation 1; dark lines) and the Version 1 forward model (Equation 2; light lines). All calculations use the same reflectace vector and atmospheric state (H2O = 2.78, CO2 = 409.3). (botttom) Residual difference between forward model calculations following the two equations.*
 
 ### 2.2. Updated Radiative Transfer Model (RTM) [↑](#table-of-contents)
 
@@ -74,22 +117,22 @@ Version 2 sRTMnet predicts atmospheric path reflectance, $\rho_{atm}$, transmitt
 Differences between sRTMnet versions are dependent on the atmospheric state and most prominent in extreme atmospheres (Figure 2 and Figure 3). With respect to aerosol optical depth (AOD) and atmospheric water vapor ($H_2O$), there consistent differences at visible wavelengths and within water absorption feaures reflecting the shape of the dependence between atmospheric transmittance and these two variables.
 
 <p align="center">
-    <img src="img_v1_v2_delta/fig02.png" width="100%", alt="Figure 2">
-</p>
-
-*Figure 2. Modeled total transmittance with (left) version 1 sRTMnet and (middle) version 2 sRTMnet at varying atmosphere water vapor concentration. Comparison is made with constant $AOD = 0.2$. (right) Residual difference between version 2 - version 1.*
-
-<p align="center">
     <img src="img_v1_v2_delta/fig03.png" width="100%", alt="Figure 3">
 </p>
 
-*Figure 3. Modeled total transmittance with (left) version 1 sRTMnet and (middle) version 2 sRTMnet at varying aerosol optical depth. Comparison is made with constant $H_2O = 0.6$. (right) Residual difference between version 2 - version 1.*
+*Figure 3. Modeled total transmittance with (left) version 1 sRTMnet and (middle) version 2 sRTMnet at varying atmosphere water vapor concentration. Comparison is made with constant $AOD = 0.2$. (right) Residual difference between version 2 - version 1.*
+
+<p align="center">
+    <img src="img_v1_v2_delta/fig04.png" width="100%", alt="Figure 4">
+</p>
+
+*Figure 4. Modeled total transmittance with (left) version 1 sRTMnet and (middle) version 2 sRTMnet at varying aerosol optical depth. Comparison is made with constant $H_2O = 0.6$. (right) Residual difference between version 2 - version 1.*
 
 ### 2.2. Pre-cached global look-up tables
 ### 2.3. Empirical orthogonal functions (EOFs)
 
 <p align="center">
-    <img src="img_v1_v2_delta/fig05.png" width="80%", alt="Figure 5">
+    <img src="img_v1_v2_delta/fig07.png" width="80%", alt="Figure 5">
 </p>
 
 *Figure 5.*
