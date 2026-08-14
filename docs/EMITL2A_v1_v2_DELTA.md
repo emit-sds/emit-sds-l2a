@@ -170,6 +170,19 @@ While the EOF vectors are static, we jointly estimate magnitude scalers on the v
 
 
 ### 2.4. Edited Surface Reflectance Statistical Prior
+
+Optimal estimation following ATBD section 3.2.4 leverages statistical constraint on surface reflectance where the constraint follows a multivariate prior distribution, $p^{'}(x_r)=\mathcal{N}(\mu_r, \Sigma_r)$, where $\mu_r$ is the prior mean and $\Sigma_r$ is the prior covariance. 
+
+Version 2 alters the prior distribution for all surface types. First, spectra that match the soil category use a different prior mean, specifically tailored to remove mineral absoprition artifacts that can bias retrievals. Second, the structure of prior regularization is more granular, allowing statistical constraints to target narrow wavelength regions. Third prior covariances are manually regularized to provide slightly more constraint at shortwave infrared wavelengths. Fourth, prior covariances at near infrared wavelengths are manually regularized to provide slightly less constraint. The impact of these changes are designed to specifically target the edges of atmospheric deep water absorption regions, and to help identify near-infrared mineral absorption features.
+
+
+<p align="center">
+    <img src="img_v1_v2_delta/fig13.png" width="70%", alt="Figure 13">
+</p>
+
+*Figure 13. Version 1 and Version 2 surface prior library means and standard deviations for (a) soil, (b) and (c) soil + vegetation, (d) vegetation, (e) water, (f) Snow/Other, and (g) Snow/Other. The prior mean changed for only one surface type, soil. Prior covariances, demonstrated here as the standard deviation changed for every surface type. Arrows point to the NIR region where prior constrains are loosened to enable mineral identification.*
+
+
 ### 2.5. Variable atmospheric $CO_2$
 ### 2.6. Constrained Aerosol Optical Depth Prior Variance
 ### 2.7. Updated L1B radiometry and wavelength solutions
