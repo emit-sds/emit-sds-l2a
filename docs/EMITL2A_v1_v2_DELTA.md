@@ -23,13 +23,12 @@ Pasadena, California 91109-8099
 2. [Summary of changes](#2-summary-of-changes)
     - 2.1. [Updated Radiative Transfer Formalism (Forward Model)](#21-updated-forward-model)
     - 2.2. [Updated Radiative Transfer Model](#22-updated-radiative-transfer-model)
-    - 2.3. [Pre-cached global look-up tables](#23-pre-cached-luts)
-    - 2.4. [Empirical orthogonal functions (EOFs)](#24-empirical-orthogonal-functions)
-    - 2.5. [Edited Surface Reflectance Statistical Prior](#25-edited-surface-reflectance-statistical-prior)
-    - 2.6. [Variable atmospheric carbon dioxide concentration ($CO_2$)](#26-variable-atmospheric-co2)
-    - 2.7. [Constrained Aerosol Optical Depth Prior Variance](#27-constrained-aerosol-optical-depth-prior-variance)
-    - 2.8. [Removed pressure elevation from solution state](#28-pressure-elevation)
-    - 2.9. [Updated L1B radiometry and wavelength solutions](#29-updated-radiometry-wavelengths)
+    - 2.3. [Empirical orthogonal functions (EOFs)](#23-empirical-orthogonal-functions)
+    - 2.4. [Edited Surface Reflectance Statistical Prior](#24-edited-surface-reflectance-statistical-prior)
+    - 2.5. [Variable atmospheric carbon dioxide concentration ($CO_2$)](#25-variable-atmospheric-co2)
+    - 2.6. [Constrained Aerosol Optical Depth Prior Variance](#26-constrained-aerosol-optical-depth-prior-variance)
+    - 2.7. [Removed pressure elevation from solution state](#27-pressure-elevation)
+    - 2.8. [Updated L1B radiometry and wavelength solutions](#28-updated-radiometry-wavelengths)
 
 ---
 
@@ -117,31 +116,58 @@ Version 2 sRTMnet predicts atmospheric path reflectance, $\rho_{atm}$, transmitt
 Differences between sRTMnet versions are dependent on the atmospheric state and most prominent in extreme atmospheres (Figure 2 and Figure 3). With respect to aerosol optical depth (AOD) and atmospheric water vapor ($H_2O$), there consistent differences at visible wavelengths and within water absorption feaures reflecting the shape of the dependence between atmospheric transmittance and these two variables.
 
 <p align="center">
-    <img src="img_v1_v2_delta/fig03.png" width="100%", alt="Figure 3">
+    <img src="img_v1_v2_delta/fig07.png" width="100%", alt="Figure 7">
 </p>
 
-*Figure 3. Modeled total transmittance with (left) version 1 sRTMnet and (middle) version 2 sRTMnet at varying atmosphere water vapor concentration. Comparison is made with constant $AOD = 0.2$. (right) Residual difference between version 2 - version 1.*
+*Figure 7. Modeled total transmittance with (left) version 1 sRTMnet and (middle) version 2 sRTMnet at varying atmosphere water vapor concentration. Comparison is made with constant $AOD = 0.2$. (right) Residual difference between version 2 - version 1.*
 
 <p align="center">
-    <img src="img_v1_v2_delta/fig04.png" width="100%", alt="Figure 4">
+    <img src="img_v1_v2_delta/fig08.png" width="100%", alt="Figure 8">
 </p>
 
-*Figure 4. Modeled total transmittance with (left) version 1 sRTMnet and (middle) version 2 sRTMnet at varying aerosol optical depth. Comparison is made with constant $H_2O = 0.6$. (right) Residual difference between version 2 - version 1.*
+*Figure 8. Modeled total transmittance with (left) version 1 sRTMnet and (middle) version 2 sRTMnet at varying aerosol optical depth. Comparison is made with constant $H_2O = 0.6$. (right) Residual difference between version 2 - version 1.*
 
-### 2.2. Pre-cached global look-up tables
+#### Wavelength resampling of atmospheric quantities
+
+Careful consideration of wavelength resampling is required because radiative transfer modeling is performed at a higher spectral resolution than instrument response. This is especially true with the added complexity of coupled atmospheric terms in the updated forward model. Version 2 now performs atmospheric coupling and downstream convolutions on radiance quantiies, rather than transmittance. Look-up table entries are stored in radiance units, which mitigates convolution errors arrising when resampling transmittance quantities.
+
+#### Updated model uncertainty
+
+Reflectance retrieval uses an empirically derived uncertainty model to propogate prediction uncertainties into the downstream Level 2A product. The Version 2 sRTMnet emulator has a new uncertainty model reflecting its updated structure and retrained weights.
+
+<p align="center">
+    <img src="img_v1_v2_delta/fig09.png" width="95%", alt="Figure 9">
+</p>
+
+*Figure 9. Standard deviation of the diagonal of the model discrepency matrix for Version 1 and Version 2 sRTMnet.*
+
+
 ### 2.3. Empirical orthogonal functions (EOFs)
 
+Empirical residual orthogonal functions (EOFs) capture systematic cross-cross collection residual error arising from biases in radiative modeling and other unconstrained radiometric factors. Vectors are empirically determined and statically fixed (Figure 10). Visible wavelengths and wavelengths with significant atmospheric water absorption are manually masked out creating the discontinuous appearance of EOF values across the spectrum. 
+
+While the EOF vectors are static, we jointly estimate magnitude scalers on the vectors as part of the full OE inversion following ATBD section 3.2.4. The spatial footprint of these fit EOF magnitudes follow physically reasonable patterns. In the EMIT case, granule columns with known radiometric effects show up prominently in EOF maps (Figure 11). The impact of incorporating the EOFs on retrieved reflectance is limited to wavelengths with non-zero EOF values (Figure 12). Reflectance differences are most noticable at the edges of deep atmospheric water absorption features at shortwave infrared wavelengths.
+
+
 <p align="center">
-    <img src="img_v1_v2_delta/fig07.png" width="80%", alt="Figure 5">
+    <img src="img_v1_v2_delta/fig10.png" width="80%", alt="Figure 10">
 </p>
 
-*Figure 5.*
+*Figure 10. The Version 2 EOF vectors. Flat regions with 0.0 values are regions of the spectrum that are manually masked out. We only apply the additive EOF correction within "windows of the spectrum".
 
 <p align="center">
-    <img src="img_v1_v2_delta/fig06.png" width="100%", alt="Figure 6">
+    <img src="img_v1_v2_delta/fig11.png" width="100%", alt="Figure 11">
 </p>
 
-*Figure 5.*
+*Figure 11. Spatial maps of jointly estimate EOF magnitudes for the three EOF vectors. The magnitudes shown here are jointly estimated as part of the OE retrieval following section 3.2.4. Striping and column-wise clustering follows known columnar patterns of radiometric effects.*
+
+
+<p align="center">
+    <img src="img_v1_v2_delta/fig12.png" width="80%", alt="Figure 12">
+</p>
+
+*Figure 12. Example of scene-wide difference in retreived reflectance with and without joint EOF retrievals. Each set of solutions were run with the same Version 2 configuration. The only difference is the inclusion and ommision of EOF fits. The solid lines are the scene-wide means. The shaded areas are +/- 1 standard deviation.*
+
 
 ### 2.4. Edited Surface Reflectance Statistical Prior
 ### 2.5. Variable atmospheric $CO_2$
