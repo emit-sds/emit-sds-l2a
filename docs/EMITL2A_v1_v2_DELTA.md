@@ -81,6 +81,8 @@ Version 2 Level 2A products address minor issues across the spectrum. In general
 
 ## 2. Summary of Changes
 
+### 2.7. Updated L1B radiometry and wavelength solutions
+
 ### 2.1. Updated Radiative Transfer Formalism (Forward Model) [↑](#table-of-contents)
 
 Version 2 updates the radiative transfer formalism, i.e., the forward model, which quantifies light transfer through the atmosphere and surface. Version 2 leverages a form, which accounts for six distinct photon paths (ATBD Section 3.2.1; Vermote et al., 1997):
@@ -184,27 +186,28 @@ Version 2 alters the prior distribution for all surface types. First, spectra th
 
 
 ### 2.5. Variable atmospheric $CO_2$
+
+<p align="center">
+    <img src="img_v1_v2_delta/fig14.png" width="85%", alt="Figure 14">
+</p>
+
+*Figure 13.*
+
 ### 2.6. Constrained Aerosol Optical Depth Prior Variance
-### 2.7. Updated L1B radiometry and wavelength solutions
+
+<p align="center">
+    <img src="img_v1_v2_delta/fig15.png" width="85%", alt="Figure 15">
+</p>
+
+*Figure 15.*
+
 ### 2.8. Removed pressure elevation from solution state
 
 <p align="center">
-    <img src="img_v1_v2_delta/fig10.png" width="100%", alt="Figure 10">
+    <img src="img_v1_v2_delta/fig16.png" width="85%", alt="Figure 16">
 </p>
 
-*Figure 10. Comparing spatially interpolated maps of atmospheric variables with (top) pressure elevation turned on and (bot) pressure elevation turned off. The EMIT ID shown here is emit20240626t165035.*
-
-<p align="center">
-    <img src="img_v1_v2_delta/fig11.png" width="100%", alt="Figure 11">
-</p>
-
-*Figure 11. Histograms of atmospheric solutions.*
-
-<p align="center">
-    <img src="img_v1_v2_delta/fig12.png" width="100%", alt="Figure 12">
-</p>
-
-*Figure 12. (top) Scene-wide mean and 1.96 * standard deviation reflectance for scenes processed with and without pressure elevation. (bot) Wavelength-specific residual calculated per-pixel as scene processed with pressure elevation - without pressure elevation.*
+*Figure 16.*
 
 ### 2.9. Edited atmospheric length scales
 
