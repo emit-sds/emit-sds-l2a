@@ -184,16 +184,22 @@ Version 2 alters the prior distribution for all surface types. First, spectra th
 
 *Figure 13. Version 1 and Version 2 surface prior library means and standard deviations for (a) soil, (b) and (c) soil + vegetation, (d) vegetation, (e) water, (f) Snow/Other, and (g) Snow/Other. The prior mean changed for only one surface type, soil. Prior covariances, demonstrated here as the standard deviation changed for every surface type. Arrows point to the NIR region where prior constrains are loosened to enable mineral identification.*
 
+### 2.5. Removed pressure elevation from solution state
 
-### 2.5. Variable atmospheric $CO_2$
+Version 1 processing included three atmospheric variables, aerosol optical depth (AOD), pressure elevation (GNDALT), and Atmospheric precipitable water vapor ($H_2O$). In Version 2 processing, pressure elevation is removed from the solution statevector. 
+
+There are minor impacts from this change. Across scene-wide per-pixel matchups from an example EMIT granule (emit20250523t104701), we see minor wavelength-dependent residuals on the order of 0.5% between the scene processed with, and without retrieved pressure elevation (Figure 16). Notable spectral features in the scene-wide average residual hint towards differences in aerosol, Oxygen-A, and $CO_2$ effects.
 
 <p align="center">
     <img src="img_v1_v2_delta/fig14.png" width="85%", alt="Figure 14">
 </p>
 
-*Figure 13.*
+*Figure 14. Comparison of equivalent reflectance solutions with and without retrieved pressure elevation. The only difference between the two processing schemes is the inclusion and ommision of pressure elevation. This is not a comparison of Version 1 and Version 2 spectra. (Top) Scene-wide mean (solid-line) and standard deviation (shaded area) for the two processing scemes.*
 
-### 2.6. Constrained Aerosol Optical Depth Prior Variance
+
+### 2.6. Addition of atmospheric $CO_2$ concentraion to the solution state
+
+Version 2 adds carbon dioxide concentration, $CO_2$ to the solution statevector as a retrieved parameter. As a note in this document, the $CO_2$ concentration we include in the Version 2 retrieval should be viewed as a proxy concentration to inprove surface reflectance solutions, not an accurate estimate of atmospheric $CO_2$ concentration. We evaulate the impact of the change using a similar scene-wide average comparison across the example EMIT granule (emit20250523t104701). Across the spectrum there are < 0.5% differences between the cube processed with and without $CO_2$. The largest magnitude difference sits within the strong $CO_2$ atmospheric absoprtion feature around 2000 nm.
 
 <p align="center">
     <img src="img_v1_v2_delta/fig15.png" width="85%", alt="Figure 15">
@@ -201,7 +207,7 @@ Version 2 alters the prior distribution for all surface types. First, spectra th
 
 *Figure 15.*
 
-### 2.8. Removed pressure elevation from solution state
+### 2.7. Constrained Aerosol Optical Depth Prior Variance
 
 <p align="center">
     <img src="img_v1_v2_delta/fig16.png" width="85%", alt="Figure 16">
@@ -209,10 +215,45 @@ Version 2 alters the prior distribution for all surface types. First, spectra th
 
 *Figure 16.*
 
-### 2.9. Edited atmospheric length scales
+### 2.8. Edited atmospheric length scales
+
+Atmospheres used in the final analytical line retrieval (Figure 17; ATBD section 3.2.5) are interpolated from superpixel resolution to native per-pixel resolution. The atmospheric interpolation follows a local linear model with small amounts of spatial gaussian smoothing. The number of neighbors used within the local regression is a hyperparameter that changed from Version 1 to Version 2 processing.
+
+<p align="center">
+    <img src="img_v1_v2_delta/fig17.png" width="65%", alt="Figure 17">
+</p>
+
+*Figure 17. Superpixel and per-pixel reflectance for EMIT granule emit20220818t205752. A cloudy scene was chosen here to exagerate the spatial interpolation*
+
+A constant number of `10` local neighbors was used for all atmospheric variables for the bulk of Version 1 processing. Starting June 2025, and continuing into Version 2 processing, earch atmospheric variable now uses a different number of local neighbors. $CO_2$, uses 200 neighbors, AOD uses 100 local neighbors, and $H_2O$ uses 10 local neighbors. Larger numbers of local neighbors reflect broader smoothing longer spatial lengthscales of covariation (e.g. Thompson et al., 2022).
+
+The impact of the change is demonstrated in the spatial maps of the three atmospheric variables. The example EMIT granule (emit20220818t205752) was collected and processed in 2022. Version 1 AOD uses the constant number of 10 local neighbors, while version 2 uses 100 local neighbors (Figure 18). Not only are the AOD magnitudes different, reflecting other V2 changes to radiative transfer and atmospheric prior variance, but visually the kernel size of the spatial interpolation is broader in the version 2 map.
+
+<p align="center">
+    <img src="img_v1_v2_delta/fig18.png" width="80%", alt="Figure 18">
+</p>
+
+*Figure 18. Comparison between AOD interpolation between superpixel and per-pixel spatial fields. (Top row) Version 1 inteprolation uses 10 local neighbors in the interpolation, while (Bottom row) Version 2 uses 100 local neighbors. The spatial field is "blurrier," reflecting the larger area captured in the local regresison.*
+
+The number of local neighbors used in the $H_2O$ interpolation is the same between Version 1 and Version 2 processing. While there are magnitude differences reflecting other processing changes, the interpolation step is unchanged.
+
+<p align="center">
+    <img src="img_v1_v2_delta/fig19.png" width="80%", alt="Figure 19">
+</p>
+
+*Figure 19. Comparison between $H_2O$ between superpixel and per-pixel spatial fields. Both (Top row) Version 1 and (Bottom row) Version 2 use 10 local neighbors in the interpolation. Magnitude differences are due to other Version 2 updates. The interpolation algorithm is the same between versions.*
+
+We use 200 local neighbors in the interpolation step, the broadest spatial smoothing across atmospheric variables.
+
+<p align="center">
+    <img src="img_v1_v2_delta/fig20.png" width="70%", alt="Figure 20">
+</p>
+
+*Figure 20. Spatial interpolation of superpixel to per-pixel $CO_2$. $CO_2$ uses 200 local neighbors in the interpolation algorithm.*
 
 
 ### 3 References [↑](#table-of-contents)
 
+Thompson, D.R., Bohn, N., Brodrick, P.G., Carmon, N., Eastwood, M.L., Eckert, R., Fichot, C.G., Harringmeyer, J.P., Nguyen, H.M., Simard, M. and Thorpe, A.K. (2022). Atmospheric lengthscales for global VSWIR imaging spectroscopy. Journal of Geophysical Research: Biogeosciences, 127(6), e2021JG006711.
 
 Vermote, E. F., Tanré, D., Deuze, J. L., Herman, M., & Morcette, J. J. (1997). Second simulation of the satellite signal in the solar spectrum, 6S: An overview. IEEE transactions on geoscience and remote sensing, 35(3), 675-686.
