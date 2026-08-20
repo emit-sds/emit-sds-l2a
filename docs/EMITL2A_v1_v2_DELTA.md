@@ -17,16 +17,16 @@ Pasadena, California 91109-8099
 
 
 ## Table of Contents
-1. [Updates to Level 2A reflectance between Version 1 and Version 2](#1-reflectance-comparison)
+1. [Updates to level 2a reflectance between Version 1 and Version 2](#1-updates-to-level-2a-reflectance-between-version-1-and-version-2)
 2. [Summary of changes](#2-summary-of-changes)
-    - 2.1. [Updated L1B Radiometry and Wavelength Solutions](#21-updated-l1b-radiometry-and-wavelength-solutions)
-    - 2.2. [Updated Radiative Transfer Formalism (Forward Model)](#22-updated-forward-model)
-    - 2.3. [Updated Radiative Transfer Model (RTM)](#23-updated-radiative-transfer-model)
-    - 2.4. [Empirical orthogonal functions (EOFs)](#24-empirical-orthogonal-functions)
-    - 2.5. [Edited Surface Reflectance Statistical Prior](#25-edited-surface-reflectance-statistical-prior)
-    - 2.6. [Removed pressure elevation from solution state](#26-pressure-elevation)
-    - 2.7. [Addition of atmospheric $CO_2$ concentration to the solution state](#25-addition-of-atmospheric-co2-concentration)
-    - 2.8. [Constrained Aerosol Optical Depth Prior Variance](#26-constrained-aerosol-optical-depth-prior-variance)
+    - 2.1. [Updated L1B radiometry and wavelength solutions](#21-updated-l1b-radiometry-and-wavelength-solutions)
+    - 2.2. [Updated radiative transfer formalism (Forward Model)](#22-updated-radiative-transfer-formalism-(forward model))
+    - 2.3. [Updated radiative Transfer model (RTM)](#23-updated-radiative-transfer-model-(rtm))
+    - 2.4. [Empirical orthogonal functions (EOFs)](#24-empirical-orthogonal-functions-(eofs))
+    - 2.5. [Edited surface reflectance statistical prior](#25-edited-surface-reflectance-statistical-prior)
+    - 2.6. [Removed pressure elevation from solution state](#26-removed-pressure-elevation-from-solution-state)
+    - 2.7. [Addition of atmospheric carbon dioxide concentration to the solution state](#25-addition-of-atmospheric-carbon-dioxide-concentration-to-the-solution-state)
+    - 2.8. [Constrained aerosol optical depth prior variance](#26-constrained-aerosol-optical-depth-prior-variance)
     - 2.9. [Edited atmospheric length scales](#28-edited-atmospheric-length-scales)
 
 ---
@@ -229,7 +229,7 @@ Atmospheres used in the final analytical line retrieval (Figure 17; ATBD section
 
 *Figure 17. Superpixel and per-pixel reflectance for EMIT granule emit20220818t205752. A cloudy scene was chosen here to exagerate the spatial interpolation*
 
-A constant number of `10` local neighbors was used for all atmospheric variables for the bulk of Version 1 processing. Starting June 2025, and continuing into Version 2 processing, earch atmospheric variable now uses a different number of local neighbors. $CO_2$, uses 200 neighbors, AOD uses 100 local neighbors, and $H_2O$ uses 10 local neighbors. Larger numbers of local neighbors reflect broader smoothing longer spatial lengthscales of covariation (e.g. Thompson et al., 2022).
+A constant number of 10 local neighbors was used for all atmospheric variables for the bulk of Version 1 processing. Starting June 2025, and continuing into Version 2 processing, earch atmospheric variable now uses a different number of local neighbors. $CO_2$, uses 200 neighbors, AOD uses 100 local neighbors, and $H_2O$ uses 10 local neighbors. Larger numbers of local neighbors reflect broader smoothing and longer spatial lengthscales of covariation (e.g. Thompson et al., 2022).
 
 The impact of the change is demonstrated in the spatial maps of the three atmospheric variables. The example EMIT granule (emit20220818t205752) was collected and processed in 2022. Version 1 AOD uses the constant number of 10 local neighbors, while version 2 uses 100 local neighbors (Figure 18). Not only are the AOD magnitudes different, reflecting other V2 changes to radiative transfer and atmospheric prior variance, but visually the kernel size of the spatial interpolation is broader in the version 2 map.
 
