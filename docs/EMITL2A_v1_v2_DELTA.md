@@ -4,11 +4,9 @@
 
 ### Version 1 to Version 2 Transition Document
 
-David R. Thompson<sup>1</sup>, Philip G. Brodrick<sup>1</sup>, Robert O. Green<sup>1</sup>, Olga Kalashnikova<sup>1</sup>, Sarah Lundeen<sup>1</sup>, Gregory Okin<sup>2</sup>, Winston Olson-Duvall<sup>1</sup>, Thomas Painter<sup>2</sup>
+Philip G. Brodrick<sup>1</sup>, David R. Thompson<sup>1</sup>, Evan Greenberg<sup>1</sup>, Niklas Bohn<sup>1</sup>, Sarah R. Lundeen<sup>1</sup>, Winston Olson-Duvall<sup>1</sup>, Adam Chlus<sup>1</sup> 
 
 <sup>1</sup> Jet Propulsion Laboratory, California Institute of Technology
-
-<sup>2</sup> University of California, Los Angeles
 
 Version 2.0
 August 2026
@@ -21,7 +19,7 @@ Pasadena, California 91109-8099
 ## Table of Contents
 1. [Updates to Level 2A reflectance between Version 1 and Version 2](#1-reflectance-comparison)
 2. [Summary of changes](#2-summary-of-changes)
-    - 2.1. [Updated L1B Radiometry and Wavelength Solutions](#21-updated-l1b-radiometry-wavelength-solutions)
+    - 2.1. [Updated L1B Radiometry and Wavelength Solutions](#21-updated-l1b-radiometry-and-wavelength-solutions)
     - 2.2. [Updated Radiative Transfer Formalism (Forward Model)](#22-updated-forward-model)
     - 2.3. [Updated Radiative Transfer Model (RTM)](#23-updated-radiative-transfer-model)
     - 2.4. [Empirical orthogonal functions (EOFs)](#24-empirical-orthogonal-functions)
@@ -44,7 +42,7 @@ Version 2 Level 2A products address minor issues across the spectrum. In general
     <img src="img_v1_v2_delta/fig01.png" width="90%", alt="Figure 1">
 </p>
 
-*Figure 1: Version 1 and Version 2 EMIT reflectance compared to in-situ field spectra collected as part of the Gem-X campaign. Several SWIR 2 artifacts are removed in Version 2 data. The arrow points to a prominent feature present in Version 1 that is removed in Version 2.*
+*Figure 1: Version 1 and Version 2 EMIT reflectance compared to in situ field spectra collected as part of the Gem-X campaign. Several SWIR 2 artifacts are removed in Version 2 data. The arrow points to a prominent feature present in Version 1 that is removed in Version 2.*
 
 #### Comparison of a vegetation spectrum
 
@@ -110,7 +108,7 @@ In EMIT processing, the practical impact of the forward model difference is the 
     <img src="img_v1_v2_delta/fig06.png" width="70%", alt="Figure 6">
 </p>
 
-*Figure 2. (**top**) Forward calculations at varying aerosol optical depth (AOT) following the Version 2 forward model (Equation 1; dark lines) and the Version 1 forward model (Equation 2; light lines). All calculations use the same reflectance vector and atmospheric state (H2O = 2.78, CO2 = 409.3). (bottom) Residual difference between forward model calculations following the two equations.*
+*Figure 2. (**top**) Forward calculations at varying aerosol optical depth (AOD) following the Version 2 forward model (Equation 1; dark lines) and the Version 1 forward model (Equation 2; light lines). All calculations use the same reflectance vector and atmospheric state (H2O = 2.78, CO2 = 409.3). (bottom) Residual difference between forward model calculations following the two equations.*
 
 ### 2.3. Updated Radiative Transfer Model (RTM) [↑](#table-of-contents)
 
@@ -118,7 +116,7 @@ The version 2 L2A product uses an updated radiative transfer model to build atmo
 
 Version 2 sRTMnet predicts atmospheric path reflectance, $\rho_{atm}$, transmittance of downward-direct photon paths, $t_{down,dir}$, transmittance of downward-diffuse photon paths, $t_{down,dif}$, transmittance of updward-direct photon paths, $t_{up,dir}$, transmittance of upward-diffuse photon paths, $t_{up,dif}$, and the spherical albedo of the atmosphere, $S$ at 0.1 nm spectral resolution. Version 1 sRTMnet  in contrast, predicts $\rho_{atm}$, total atmospheric transmittance, $t_{tot}$, and $S$ at 0.5 nm spectral resolution.
 
-Differences between sRTMnet versions are dependent on the atmospheric state and most prominent in extreme atmospheres (Figure 2 and Figure 3). With respect to aerosol optical depth (AOD) and atmospheric water vapor ($H_2O$), there consistent differences at visible wavelengths and within water absorption feaures reflecting the shape of the dependence between atmospheric transmittance and these two variables.
+Differences between sRTMnet versions are dependent on the atmospheric state and most prominent in extreme atmospheres (Figure 2 and Figure 3). With respect to aerosol optical depth (AOD) and atmospheric water vapor ($H_2O$), there are consistent differences at visible wavelengths and within water absorption features reflecting the shape of the dependence between atmospheric transmittance and these two variables.
 
 <p align="center">
     <img src="img_v1_v2_delta/fig07.png" width="100%", alt="Figure 7">
@@ -134,24 +132,24 @@ Differences between sRTMnet versions are dependent on the atmospheric state and 
 
 #### Wavelength resampling of atmospheric quantities
 
-Careful consideration of wavelength resampling is required because radiative transfer modeling is performed at a higher spectral resolution than instrument response. This is especially true with the added complexity of coupled atmospheric terms in the updated forward model. Version 2 now performs atmospheric coupling and downstream convolutions on radiance quantiies, rather than transmittance. Look-up table entries are stored in radiance units, which mitigates convolution errors arrising when resampling transmittance quantities.
+Careful consideration of wavelength resampling is required because radiative transfer modeling is performed at a higher spectral resolution than instrument response. This is especially true with the added complexity of coupled atmospheric terms in the updated forward model. Version 2 now performs atmospheric coupling and downstream convolutions on radiance quantities, rather than transmittance. Look-up table entries are stored in radiance units, which mitigates convolution errors arising when resampling transmittance quantities.
 
 #### Updated model uncertainty
 
-Reflectance retrieval uses an empirically derived uncertainty model to propogate prediction uncertainties into the downstream Level 2A product. The Version 2 sRTMnet emulator has a new uncertainty model reflecting its updated structure and retrained weights.
+Reflectance retrieval uses an empirically derived uncertainty model to propagate prediction uncertainties into the downstream Level 2A product. The Version 2 sRTMnet emulator has a new uncertainty model reflecting its updated structure and retrained weights.
 
 <p align="center">
     <img src="img_v1_v2_delta/fig09.png" width="95%", alt="Figure 9">
 </p>
 
-*Figure 9. Standard deviation of the diagonal of the model discrepency matrix for Version 1 and Version 2 sRTMnet.*
+*Figure 9. Standard deviation of the diagonal of the model discrepancy matrix for Version 1 and Version 2 sRTMnet.*
 
 
 ### 2.4. Empirical orthogonal functions (EOFs)
 
-Empirical residual orthogonal functions (EOFs) capture systematic cross-cross collection residual error arising from biases in radiative modeling and other unconstrained radiometric factors. Vectors are empirically determined and statically fixed (Figure 10). Visible wavelengths and wavelengths with significant atmospheric water absorption are manually masked out creating the discontinuous appearance of EOF values across the spectrum. 
+Empirical residual orthogonal functions (EOFs) capture systematic cross-collection residual error arising from biases in radiative modeling and other unconstrained radiometric factors. Vectors are empirically determined and statically fixed (Figure 10). Visible wavelengths and wavelengths with significant atmospheric water absorption are manually masked out creating the discontinuous appearance of EOF values across the spectrum. 
 
-While the EOF vectors are static, we jointly estimate magnitude scalers on the vectors as part of the full OE inversion following ATBD section 3.2.4. The spatial footprint of these fit EOF magnitudes follow physically reasonable patterns. In the EMIT case, granule columns with known radiometric effects show up prominently in EOF maps (Figure 11). The impact of incorporating the EOFs on retrieved reflectance is limited to wavelengths with non-zero EOF values (Figure 12). Reflectance differences are most noticable at the edges of deep atmospheric water absorption features at shortwave infrared wavelengths.
+While the EOF vectors are static, we jointly estimate magnitude scalers on the vectors as part of the full OE inversion following ATBD section 3.2.4. The spatial footprint of these fit EOF magnitudes follow physically reasonable patterns. In the EMIT case, granule columns with known radiometric effects show up prominently in EOF maps (Figure 11). The impact of incorporating the EOFs on retrieved reflectance is limited to wavelengths with non-zero EOF values (Figure 12). Reflectance differences are most noticeable at the edges of deep atmospheric water absorption features at shortwave infrared wavelengths.
 
 
 <p align="center">
