@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. Dates are displayed in UTC.
 
+#### [v2.0.0](https://github.com/emit-sds/emit-sds-l2a/compare/v1.4.1...v2.0.0)
+
+> 3 September 2026
+
+* new surface model for EMIT v2 reflectance by @davidraythompson in https://github.com/emit-sds/emit-sds-l2a/pull/21
+* Loosened SWIR prior constraint for ocean library and NIR prior constraint for mixed soil-vegetation by @evan-greenbrg in https://github.com/emit-sds/emit-sds-l2a/pull/23
+* V2 updates by @adamchlus in https://github.com/emit-sds/emit-sds-l2a/pull/22
+* NetCDF attribute updates by @adamchlus in https://github.com/emit-sds/emit-sds-l2a/pull/26
+* Adding l2a documentation by @evan-greenbrg in https://github.com/emit-sds/emit-sds-l2a/pull/31
+* add poly prior function by @pgbrodrick in https://github.com/emit-sds/emit-sds-l2a/pull/27
+* add model discrepency matrix, correction factors, and eofs for v02 by @pgbrodrick in https://github.com/emit-sds/emit-sds-l2a/pull/28
+* V2 l2a updates by @winstonolson in https://github.com/emit-sds/emit-sds-l2a/pull/32
+* Version 1 -> Version 2 Delta document by @evan-greenbrg in https://github.com/emit-sds/emit-sds-l2a/pull/29
+
 #### [v1.4.1](https://github.com/emit-sds/emit-sds-l2a/compare/v1.4.0...v1.4.1)
 
 > 5 December 2025
