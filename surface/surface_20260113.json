@@ -20,7 +20,7 @@
           {"interval":[940,1250], "regularizer":1e-6, "correlation":"EM", "name":"shallow-water-C"},
           {"interval":[1250,1325], "regularizer":1e-8, "correlation":"EM", "name": "osf"},
           {"interval":[1325,1400], "regularizer":10, "correlation": "decorrelated","name":"deep-water-A"},
-          {"interval":[1400,1500], "regularizer":1e-4, "correlation": "EM","name":"deep-water-A-edge"},
+          {"interval":[1400,1500], "regularizer":1e-2, "correlation": "EM","name":"deep-water-A-edge"},
           {"interval":[1500,1820], "regularizer":1e-2, "correlation": "EM","name":"swir1"},
           {"interval":[1820,1960], "regularizer":10, "correlation": "decorrelated","name":"deep-water-B"},
           {"interval":[1960,2090], "regularizer":1e-4, "correlation":"EM","name": "co2"},
