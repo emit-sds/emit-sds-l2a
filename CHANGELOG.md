@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. Dates are displayed in UTC.
 
+#### [v2.0.2](https://github.com/emit-sds/emit-sds-l2a/compare/v2.0.1...v2.0.2)
+
+> 11 September 2026
+
+* Update environment.yml to reference isofit v4.1.4
+
+#### [v2.0.1](https://github.com/emit-sds/emit-sds-l2a/compare/v2.0.0...v2.0.1)
+
+> 10 September 2026
+
+* support potential alunite detection in 1400-1500 by @pgbrodrick in https://github.com/emit-sds/emit-sds-l2a/pull/34
+
 #### [v2.0.0](https://github.com/emit-sds/emit-sds-l2a/compare/v1.4.1...v2.0.0)
 
 > 3 September 2026
