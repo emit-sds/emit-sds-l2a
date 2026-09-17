@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. Dates are displayed in UTC.
 
+#### [v2.0.3](https://github.com/emit-sds/emit-sds-l2a/compare/v2.0.2...v2.0.3)
+
+> 17 September 2026
+
+* Update environment.yml to reference isofit v4.1.5
+
 #### [v2.0.2](https://github.com/emit-sds/emit-sds-l2a/compare/v2.0.1...v2.0.2)
 
 > 11 September 2026
